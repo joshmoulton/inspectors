@@ -317,7 +317,7 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
   min-width: 0;
 }
 
@@ -751,6 +751,57 @@ select.filter-select:focus {
 .tab.active {
   color: var(--brand-primary-light);
   border-bottom-color: var(--brand-primary);
+}
+
+.tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 24px;
+}
+
+.tab-button {
+  position: relative;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.tab-button:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tab-button.active {
+  color: var(--brand-primary-light);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.tab-button .tab-indicator {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--brand-primary);
+  border-radius: 2px 2px 0 0;
+}
+
+.tab-button .tab-count {
+  opacity: 0.5;
+  font-size: 12px;
 }
 
 .tab-content {
@@ -1331,6 +1382,10 @@ select.filter-select:focus {
     padding: 16px;
   }
 
+  .page-container {
+    padding: 20px 16px;
+  }
+
   .page-header {
     padding-right: 60px;
     position: sticky;
@@ -1445,7 +1500,7 @@ select.filter-select:focus {
 
 /* ===== Page Header (formalized) ===== */
 .page-container {
-  padding: 0;
+  padding: 32px 40px;
 }
 
 .page-header {
