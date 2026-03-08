@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { importOrdersCSV } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { Upload, FileSpreadsheet, X, CheckCircle, AlertTriangle, Download, Info } from 'lucide-react';
 
 export default function ImportPage() {
     const [isDragging, setIsDragging] = useState(false);
@@ -52,7 +53,7 @@ export default function ImportPage() {
         setIsUploading(false);
         if (res.success) {
             toast.success(`Successfully imported ${res.imported} orders`);
-            setFile(null); // Clear on success
+            setFile(null);
             if (fileInputRef.current) fileInputRef.current.value = '';
             router.refresh();
         } else {
@@ -68,22 +69,35 @@ export default function ImportPage() {
                     <p className="page-subtitle">Batch create work orders using CSV files.</p>
                 </div>
                 <div className="header-actions">
-                    <button className="btn btn-secondary">Download Template</button>
+                    <button className="btn btn-secondary"><Download size={16} /> Download Template</button>
                 </div>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
-                <div className="lg:col-span-2 space-y-6">
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                    {/* Drop Zone */}
                     <div
-                        className={`card glass p-12 text-center border-dashed border-2 transition-all duration-300 ${isDragging ? 'border-primary bg-primary/5 scale-[1.01]' : 'border-white/10 hover:border-white/20'
-                            }`}
+                        className="card"
+                        style={{
+                            padding: 48, textAlign: 'center',
+                            border: isDragging ? '2px dashed var(--brand-primary-light)' : '2px dashed var(--border-subtle)',
+                            background: isDragging ? 'rgba(99, 102, 241, 0.05)' : 'var(--bg-surface)',
+                            transition: 'all 0.2s'
+                        }}
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
                     >
-                        <div className="mb-4 text-5xl">📄</div>
-                        <h3 className="text-xl font-bold mb-2">Upload CSV File</h3>
-                        <p className="text-muted text-sm mb-6 max-w-sm mx-auto">
+                        <div style={{
+                            width: 64, height: 64, borderRadius: 16,
+                            background: 'rgba(99, 102, 241, 0.08)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            margin: '0 auto 20px', color: 'var(--brand-primary-light)'
+                        }}>
+                            <Upload size={28} />
+                        </div>
+                        <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Upload CSV File</h3>
+                        <p style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 24, maxWidth: 360, margin: '0 auto 24px' }}>
                             Drag and drop your spreadsheet here, or click to select from your files.
                         </p>
 
@@ -91,35 +105,43 @@ export default function ImportPage() {
                             type="file"
                             id="csv-input"
                             ref={fileInputRef}
-                            className="hidden"
+                            style={{ display: 'none' }}
                             onChange={handleFileSelect}
                             accept=".csv,text/csv"
                             disabled={isUploading}
                         />
-                        <label htmlFor="csv-input" className={`btn btn-primary cursor-pointer ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                            Select File
+                        <label htmlFor="csv-input" className={`btn btn-primary ${isUploading ? '' : ''}`} style={{ cursor: isUploading ? 'not-allowed' : 'pointer', opacity: isUploading ? 0.5 : 1 }}>
+                            <FileSpreadsheet size={16} /> Select File
                         </label>
 
                         {file && (
-                            <div className="mt-8 p-4 bg-white/5 border border-white/10 rounded-lg flex items-center justify-between text-left">
-                                <div className="flex flex-col">
-                                    <span className="font-bold text-sm text-primary">{file.name}</span>
-                                    <span className="text-xs text-muted font-mono">{(file.size / 1024).toFixed(1)} KB</span>
+                            <div style={{
+                                marginTop: 24, padding: '12px 16px',
+                                background: 'rgba(99, 102, 241, 0.06)', border: '1px solid var(--border-subtle)',
+                                borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <FileSpreadsheet size={18} style={{ color: 'var(--brand-primary-light)' }} />
+                                    <div>
+                                        <div style={{ fontSize: 13, fontWeight: 600 }}>{file.name}</div>
+                                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{(file.size / 1024).toFixed(1)} KB</div>
+                                    </div>
                                 </div>
                                 <button
+                                    className="btn-icon"
                                     onClick={() => { setFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                                    className="text-white hover:text-danger p-2"
                                     disabled={isUploading}
                                 >
-                                    ✕
+                                    <X size={16} />
                                 </button>
                             </div>
                         )}
 
                         {file && (
-                            <div className="mt-6">
+                            <div style={{ marginTop: 16 }}>
                                 <button
-                                    className="btn btn-primary w-full"
+                                    className="btn btn-primary"
+                                    style={{ width: '100%' }}
                                     onClick={handleUpload}
                                     disabled={isUploading}
                                 >
@@ -129,38 +151,57 @@ export default function ImportPage() {
                         )}
 
                         {result && (
-                            <div className={`mt-6 p-4 rounded-lg text-left ${result.success ? 'bg-success/10 border-success/30' : 'bg-danger/10 border-danger/30'} border`}>
+                            <div style={{
+                                marginTop: 24, padding: 16, borderRadius: 10, textAlign: 'left',
+                                background: result.success ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                                border: `1px solid ${result.success ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
+                            }}>
                                 {result.success ? (
-                                    <>
-                                        <p className="text-success font-bold mb-1">Import Completed Successfully!</p>
-                                        <p className="text-sm text-white/80">
-                                            {result.imported} orders imported. {result.failed! > 0 && <span className="text-warning">{result.failed} failed.</span>}
-                                        </p>
-                                    </>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                                        <CheckCircle size={18} style={{ color: 'var(--status-success)', marginTop: 1 }} />
+                                        <div>
+                                            <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--status-success)', marginBottom: 4 }}>Import Completed Successfully!</div>
+                                            <div style={{ fontSize: 13 }}>
+                                                {result.imported} orders imported. {result.failed! > 0 && <span style={{ color: 'var(--status-warning)' }}>{result.failed} failed.</span>}
+                                            </div>
+                                        </div>
+                                    </div>
                                 ) : (
-                                    <>
-                                        <p className="text-danger font-bold mb-1">Import Failed</p>
-                                        <p className="text-sm text-white/80">{result.error}</p>
-                                    </>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                                        <AlertTriangle size={18} style={{ color: 'var(--status-danger)', marginTop: 1 }} />
+                                        <div>
+                                            <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--status-danger)', marginBottom: 4 }}>Import Failed</div>
+                                            <div style={{ fontSize: 13 }}>{result.error}</div>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         )}
                     </div>
                 </div>
 
-                <div className="space-y-6">
-                    <div className="card glass p-6">
-                        <h3 className="text-lg font-bold mb-4 border-b border-white/5 pb-2">CSV Format Guide</h3>
-                        <p className="text-sm text-muted mb-4">Your CSV file must include headers in the first row. The system maps the following columns:</p>
-
-                        <ul className="space-y-3 text-sm text-white/80">
-                            <li className="flex flex-col"><span className="font-mono text-primary text-xs">OrderNumber</span> <span className="text-muted text-xs">Optional. Auto-generated if blank.</span></li>
-                            <li className="flex flex-col"><span className="font-mono text-primary text-xs">Address1, City, State, Zip</span> <span className="text-muted text-xs">Required property details.</span></li>
-                            <li className="flex flex-col"><span className="font-mono text-primary text-xs">ClientCode</span> <span className="text-muted text-xs">Matches existing Client (e.g., SGP).</span></li>
-                            <li className="flex flex-col"><span className="font-mono text-primary text-xs">DueDate</span> <span className="text-muted text-xs">Format: YYYY-MM-DD.</span></li>
-                            <li className="flex flex-col"><span className="font-mono text-primary text-xs">ClientPay, InspectorPay</span> <span className="text-muted text-xs">Numeric values (e.g., 55.00).</span></li>
-                            <li className="flex flex-col"><span className="font-mono text-primary text-xs">Instructions</span> <span className="text-muted text-xs">Text field for order instructions.</span></li>
-                        </ul>
+                {/* CSV Format Guide */}
+                <div className="card" style={{ padding: 24, alignSelf: 'flex-start' }}>
+                    <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Info size={16} /> CSV Format Guide
+                    </h3>
+                    <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16, lineHeight: 1.5 }}>
+                        Your CSV file must include headers in the first row. The system maps the following columns:
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {[
+                            { col: 'OrderNumber', desc: 'Optional. Auto-generated if blank.' },
+                            { col: 'Address1, City, State, Zip', desc: 'Required property details.' },
+                            { col: 'ClientCode', desc: 'Matches existing Client (e.g., SGP).' },
+                            { col: 'DueDate', desc: 'Format: YYYY-MM-DD.' },
+                            { col: 'ClientPay, InspectorPay', desc: 'Numeric values (e.g., 55.00).' },
+                            { col: 'Instructions', desc: 'Text field for order instructions.' },
+                        ].map((item) => (
+                            <div key={item.col}>
+                                <div style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--brand-primary-light)', marginBottom: 2 }}>{item.col}</div>
+                                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{item.desc}</div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>

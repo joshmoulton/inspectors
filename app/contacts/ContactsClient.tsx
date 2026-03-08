@@ -4,12 +4,15 @@ import { useState } from 'react';
 import { createContact, updateContact, deleteContact } from '@/lib/contactActions';
 import { Contact } from '@prisma/client';
 import { toast } from 'sonner';
+import { Search, Plus, Mail, Phone, Edit, Trash2, X } from 'lucide-react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function ContactsClient({ initialContacts }: { initialContacts: Contact[] }) {
     const [search, setSearch] = useState('');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingContact, setEditingContact] = useState<Contact | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<Contact | null>(null);
 
     const filteredContacts = initialContacts.filter(
         (c) =>
@@ -49,18 +52,18 @@ export default function ContactsClient({ initialContacts }: { initialContacts: C
         }
     }
 
-    async function handleDelete(id: string) {
-        if (!confirm('Are you sure you want to delete this contact?')) return;
-        const res = await deleteContact(id);
+    async function handleDelete(contact: Contact) {
+        const res = await deleteContact(contact.id);
         if (!res.success) {
             toast.error(res.error || 'Failed to delete contact');
         } else {
             toast.success('Contact deleted successfully');
         }
+        setDeleteTarget(null);
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="page-container">
             <header className="page-header">
                 <div>
                     <h1 className="page-title">Contacts Management</h1>
@@ -68,149 +71,157 @@ export default function ContactsClient({ initialContacts }: { initialContacts: C
                 </div>
                 <div className="header-actions">
                     <button className="btn btn-primary" onClick={() => handleOpenDialog()}>
-                        + New Contact
+                        <Plus size={16} /> New Contact
                     </button>
                 </div>
             </header>
 
-            <div className="card glass p-6">
-                <div className="mb-6 flex justify-between items-center">
-                    <div className="w-full max-w-sm">
+            <div className="card" style={{ overflow: 'hidden' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="search-input-wrapper" style={{ maxWidth: 320 }}>
+                        <Search size={15} className="search-icon" />
                         <input
                             type="text"
-                            placeholder="🔍 Search contacts by name, company, or email..."
-                            className="input w-full bg-white/5 border-white/10"
+                            placeholder="Search contacts..."
+                            className="form-control"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
+                            style={{ paddingLeft: 36 }}
                         />
                     </div>
-                    <div className="text-sm text-muted">
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                         Showing {filteredContacts.length} contacts
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="border-b border-white/10">
-                                <th className="p-4 font-bold text-muted text-sm uppercase">Name</th>
-                                <th className="p-4 font-bold text-muted text-sm uppercase">Company & Title</th>
-                                <th className="p-4 font-bold text-muted text-sm uppercase">Contact Info</th>
-                                <th className="p-4 font-bold text-muted text-sm uppercase text-right">Actions</th>
+                <table className="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Company & Title</th>
+                            <th>Contact Info</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredContacts.length === 0 ? (
+                            <tr>
+                                <td colSpan={4} style={{ padding: 48, textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                                    No contacts found.
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {filteredContacts.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="p-8 text-center text-muted">
-                                        No contacts found.
+                        ) : (
+                            filteredContacts.map((contact) => (
+                                <tr key={contact.id}>
+                                    <td style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <div style={{
+                                            width: 32, height: 32, borderRadius: '50%',
+                                            background: 'rgba(99, 102, 241, 0.15)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            fontSize: 11, fontWeight: 700, color: 'var(--brand-primary-light)', flexShrink: 0
+                                        }}>
+                                            {contact.firstName[0]}{contact.lastName[0]}
+                                        </div>
+                                        {contact.firstName} {contact.lastName}
+                                    </td>
+                                    <td>
+                                        <div style={{ fontSize: 13 }}>{contact.company || <span style={{ color: 'var(--text-tertiary)' }}>—</span>}</div>
+                                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: 'monospace', marginTop: 2 }}>{contact.title || 'No Title'}</div>
+                                    </td>
+                                    <td>
+                                        {contact.email && (
+                                            <div style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                                                <Mail size={12} style={{ color: 'var(--text-tertiary)' }} /> {contact.email}
+                                            </div>
+                                        )}
+                                        {contact.phone && (
+                                            <div style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-tertiary)' }}>
+                                                <Phone size={12} /> {contact.phone}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td>
+                                        <div style={{ display: 'flex', gap: 4 }}>
+                                            <button className="btn-icon" title="Edit" onClick={() => handleOpenDialog(contact)}><Edit size={14} /></button>
+                                            <button className="btn-icon" title="Delete" onClick={() => setDeleteTarget(contact)}><Trash2 size={14} /></button>
+                                        </div>
                                     </td>
                                 </tr>
-                            ) : (
-                                filteredContacts.map((contact) => (
-                                    <tr key={contact.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
-                                        <td className="p-4">
-                                            <div className="font-bold text-primary text-lg">
-                                                {contact.firstName} {contact.lastName}
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="text-white/90">{contact.company || <span className="text-muted">—</span>}</div>
-                                            <div className="text-xs text-muted font-mono mt-1">{contact.title || 'No Title'}</div>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="text-sm">
-                                                {contact.email && <div className="text-secondary mb-1">✉️ {contact.email}</div>}
-                                                {contact.phone && <div className="text-muted">📞 {contact.phone}</div>}
-                                            </div>
-                                        </td>
-                                        <td className="p-4 text-right">
-                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    className="btn btn-secondary px-3 py-1.5 text-xs"
-                                                    onClick={() => handleOpenDialog(contact)}
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    className="btn btn-secondary px-3 py-1.5 text-xs text-danger hover:border-danger hover:bg-danger/10"
-                                                    onClick={() => handleDelete(contact.id)}
-                                                >
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                            ))
+                        )}
+                    </tbody>
+                </table>
             </div>
 
-            {/* Custom Modal */}
+            {/* Delete Confirmation */}
+            {deleteTarget && (
+                <ConfirmDialog
+                    title="Delete Contact"
+                    description={`Are you sure you want to delete ${deleteTarget.firstName} ${deleteTarget.lastName}? This action cannot be undone.`}
+                    confirmLabel="Delete"
+                    variant="danger"
+                    onConfirm={() => handleDelete(deleteTarget)}
+                    onCancel={() => setDeleteTarget(null)}
+                />
+            )}
+
+            {/* Create/Edit Modal */}
             {isDialogOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-                    <div className="card glass w-full max-w-2xl bg-[#0F1219] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                        <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
-                            <h2 className="text-xl font-bold">
+                <div className="modal-overlay" onClick={handleCloseDialog}>
+                    <div className="modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: 640 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                            <h2 style={{ fontSize: 18, fontWeight: 700 }}>
                                 {editingContact ? 'Edit Contact' : 'Create New Contact'}
                             </h2>
-                            <button className="text-muted hover:text-white transition-colors text-2xl" onClick={handleCloseDialog}>
-                                &times;
-                            </button>
+                            <button className="btn-icon" onClick={handleCloseDialog}><X size={18} /></button>
                         </div>
 
-                        <div className="p-6 overflow-y-auto">
-                            <form id="contact-form" onSubmit={handleSubmit} className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-muted">First Name <span className="text-danger">*</span></label>
-                                        <input type="text" name="firstName" className="input" defaultValue={editingContact?.firstName || ''} required />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-muted">Last Name <span className="text-danger">*</span></label>
-                                        <input type="text" name="lastName" className="input" defaultValue={editingContact?.lastName || ''} required />
-                                    </div>
+                        <form id="contact-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    <label className="form-label">First Name <span className="required">*</span></label>
+                                    <input type="text" name="firstName" className="form-control" defaultValue={editingContact?.firstName || ''} required />
                                 </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-muted">Email</label>
-                                        <input type="email" name="email" className="input" defaultValue={editingContact?.email || ''} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-muted">Phone Number</label>
-                                        <input type="tel" name="phone" className="input" defaultValue={editingContact?.phone || ''} />
-                                    </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    <label className="form-label">Last Name <span className="required">*</span></label>
+                                    <input type="text" name="lastName" className="form-control" defaultValue={editingContact?.lastName || ''} required />
                                 </div>
+                            </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-muted">Company</label>
-                                        <input type="text" name="company" className="input" defaultValue={editingContact?.company || ''} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-muted">Job Title</label>
-                                        <input type="text" name="title" className="input" defaultValue={editingContact?.title || ''} />
-                                    </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    <label className="form-label">Email</label>
+                                    <input type="email" name="email" className="form-control" defaultValue={editingContact?.email || ''} />
                                 </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-muted">Notes</label>
-                                    <textarea name="notes" className="input min-h-[100px]" defaultValue={editingContact?.notes || ''} placeholder="Additional context..." />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    <label className="form-label">Phone Number</label>
+                                    <input type="tel" name="phone" className="form-control" defaultValue={editingContact?.phone || ''} />
                                 </div>
-                            </form>
-                        </div>
+                            </div>
 
-                        <div className="p-6 border-t border-white/10 flex justify-end gap-4 bg-white/5">
-                            <button type="button" className="btn btn-secondary" onClick={handleCloseDialog} disabled={isSaving}>
-                                Cancel
-                            </button>
-                            <button type="submit" form="contact-form" className="btn btn-primary" disabled={isSaving}>
-                                {isSaving ? 'Saving...' : 'Save Contact'}
-                            </button>
-                        </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    <label className="form-label">Company</label>
+                                    <input type="text" name="company" className="form-control" defaultValue={editingContact?.company || ''} />
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    <label className="form-label">Job Title</label>
+                                    <input type="text" name="title" className="form-control" defaultValue={editingContact?.title || ''} />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                <label className="form-label">Notes</label>
+                                <textarea name="notes" className="form-control" style={{ height: 'auto', minHeight: 100, resize: 'vertical' }} defaultValue={editingContact?.notes || ''} placeholder="Additional context..." />
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 8 }}>
+                                <button type="button" className="btn btn-secondary" onClick={handleCloseDialog} disabled={isSaving}>Cancel</button>
+                                <button type="submit" className="btn btn-primary" disabled={isSaving}>
+                                    {isSaving ? 'Saving...' : 'Save Contact'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

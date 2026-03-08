@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import OrderTabs from '@/components/OrderTabs';
 import CommentSection from '@/components/CommentSection';
 import PhotoUpload from '@/components/PhotoUpload';
+import Breadcrumbs from '@/components/Breadcrumbs';
+import OrderDetailActions from './OrderDetailActions';
 
 export default async function OrderDetailPage({ params }: { params: { id: string } }) {
     const { id } = await params;
@@ -33,14 +35,16 @@ export default async function OrderDetailPage({ params }: { params: { id: string
 
     return (
         <div className="page-container">
-            <header className="page-header items-start">
-                <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3 mb-1">
-                        <Link href="/orders" className="text-muted hover:text-white transition-colors">
-                            <span className="text-xl">←</span>
-                        </Link>
-                        <h1 className="page-title leading-none">Order #{order.orderNumber}</h1>
-                        <span className={`badge badge-${getStatusColor(order.status)} ml-2`}>
+            <Breadcrumbs items={[
+                { label: 'Orders', href: '/orders' },
+                { label: `#${order.orderNumber}` },
+            ]} />
+
+            <header className="page-header" style={{ alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <h1 className="page-title">Order #{order.orderNumber}</h1>
+                        <span className={`badge badge-${getStatusColor(order.status)}`}>
                             {order.status}
                         </span>
                     </div>
@@ -49,18 +53,18 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                     </p>
                 </div>
                 <div className="header-actions">
-                    <Link href={`/orders/${id}/edit`} className="btn btn-secondary mr-2">Edit Order</Link>
-                    <button className="btn btn-primary">Submit to Client</button>
+                    <Link href={`/orders/${id}/edit`} className="btn btn-secondary">Edit Order</Link>
+                    <OrderDetailActions orderId={id} currentStatus={order.status} />
                 </div>
             </header>
 
             <OrderTabs tabs={tabs}>
                 {/* Overview Tab */}
-                <div key="overview" className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
-                    <div className="lg:col-span-2 space-y-6">
-                        <div className="card glass p-6">
-                            <h3 className="text-lg font-bold mb-4 border-b border-white/5 pb-2">Property Information</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+                <div key="overview" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                        <div className="card" style={{ padding: 24 }}>
+                            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>Property Information</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 32px' }}>
                                 <DetailItem label="Address 1" value={order.address1} />
                                 <DetailItem label="Address 2" value={order.address2} />
                                 <DetailItem label="City" value={order.city} />
@@ -72,9 +76,9 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                             </div>
                         </div>
 
-                        <div className="card glass p-6">
-                            <h3 className="text-lg font-bold mb-4 border-b border-white/5 pb-2">Details & Financials</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+                        <div className="card" style={{ padding: 24 }}>
+                            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>Details & Financials</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 32px' }}>
                                 <DetailItem label="Lender / Mortgage Co" value={order.mortgageCompany} />
                                 <DetailItem label="Loan #" value={order.loanNumber} />
                                 <DetailItem label="Client Pay" value={order.clientPay ? `$${order.clientPay.toFixed(2)}` : '---'} />
@@ -84,18 +88,18 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                             </div>
                         </div>
 
-                        <div className="card glass p-6">
-                            <h3 className="text-lg font-bold mb-4 border-b border-white/5 pb-2">Instructions</h3>
-                            <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap">
+                        <div className="card" style={{ padding: 24 }}>
+                            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>Instructions</h3>
+                            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                                 {order.instructions || 'No instructions provided.'}
                             </p>
                         </div>
                     </div>
 
-                    <div className="space-y-6">
-                        <div className="card glass p-6">
-                            <h3 className="text-lg font-bold mb-4 border-b border-white/5 pb-2">Timeline</h3>
-                            <div className="space-y-4">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                        <div className="card" style={{ padding: 24 }}>
+                            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>Timeline</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                 <TimelineItem label="Due Date" date={order.dueDate} isImportant />
                                 <TimelineItem label="Ordered" date={order.orderedDate} />
                                 <TimelineItem label="Assigned" date={order.assignedDate} />
@@ -105,9 +109,9 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                             </div>
                         </div>
 
-                        <div className="card glass p-6">
-                            <h3 className="text-lg font-bold mb-4 border-b border-white/5 pb-2">Assignment</h3>
-                            <div className="space-y-4">
+                        <div className="card" style={{ padding: 24 }}>
+                            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>Assignment</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                 <DetailItem label="Client" value={order.client?.name} />
                                 <DetailItem label="Code" value={order.client?.code} isBadge />
                                 <DetailItem label="Inspector" value={order.inspector ? `${order.inspector.firstName} ${order.inspector.lastName}` : 'Unassigned'} />
@@ -118,37 +122,29 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                 </div>
 
                 {/* Photos Tab */}
-                <div key="photos" className="space-y-8 animate-in fade-in duration-500">
+                <div key="photos" style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
                     {order.attachments.length > 0 && (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
                             {order.attachments.map((file: any) => (
-                                <div key={file.id} className="group card glass p-2 hover:border-primary/50 transition-all duration-300">
-                                    <div className="aspect-[4/3] rounded-lg overflow-hidden relative mb-2">
-                                        <img
-                                            src={file.url}
-                                            alt={file.filename}
-                                            className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                                        />
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <a href={file.url} target="_blank" className="btn btn-secondary btn-sm">View Full</a>
-                                        </div>
+                                <div key={file.id} className="card" style={{ padding: 8 }}>
+                                    <div style={{ aspectRatio: '4/3', borderRadius: 8, overflow: 'hidden', marginBottom: 8 }}>
+                                        <img src={file.url} alt={file.filename} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     </div>
-                                    <div className="flex justify-between items-center px-1">
-                                        <span className="text-[10px] font-bold text-muted truncate max-w-[120px]">{file.filename}</span>
-                                        <span className="text-[8px] font-mono text-muted/50">{(file.size! / 1024).toFixed(0)}KB</span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
+                                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{file.filename}</span>
+                                        <span style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--text-tertiary)' }}>{(file.size! / 1024).toFixed(0)}KB</span>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     )}
-
-                    <div className="border-t border-white/5 pt-8">
+                    <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 32 }}>
                         <PhotoUpload orderId={order.id} />
                     </div>
                 </div>
 
                 {/* Comments Tab */}
-                <div key="comments" className="animate-in fade-in duration-500">
+                <div key="comments">
                     <CommentSection
                         orderId={order.id}
                         initialComments={order.comments.map((c: any) => ({
@@ -159,32 +155,35 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                 </div>
 
                 {/* History Tab */}
-                <div key="history" className="card glass overflow-hidden animate-in fade-in duration-500">
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Action</th>
-                                <th>Details</th>
-                                <th>User</th>
-                                <th>Timestamp</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {order.history.map((entry: any) => (
-                                <tr key={entry.id}>
-                                    <td className="font-bold text-white/90">{entry.action}</td>
-                                    <td className="text-sm">{entry.details || '---'}</td>
-                                    <td>{entry.user || 'System'}</td>
-                                    <td className="text-xs font-mono">{new Date(entry.createdAt).toLocaleString()}</td>
-                                </tr>
-                            ))}
-                            {order.history.length === 0 && (
-                                <tr>
-                                    <td colSpan={4} className="text-center italic text-muted p-8">No history recorded yet.</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                <div key="history">
+                    <div className="card" style={{ overflow: 'hidden' }}>
+                        {order.history.length > 0 ? (
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Action</th>
+                                        <th>Details</th>
+                                        <th>User</th>
+                                        <th>Timestamp</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {order.history.map((entry: any) => (
+                                        <tr key={entry.id}>
+                                            <td style={{ fontWeight: 600 }}>{entry.action}</td>
+                                            <td style={{ fontSize: 13 }}>{entry.details || '---'}</td>
+                                            <td>{entry.user || 'System'}</td>
+                                            <td style={{ fontSize: 12, fontFamily: 'monospace', color: 'var(--text-tertiary)' }}>{new Date(entry.createdAt).toLocaleString()}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary)', fontSize: 13 }}>
+                                No history recorded yet.
+                            </div>
+                        )}
+                    </div>
                 </div>
             </OrderTabs>
         </div>
@@ -194,12 +193,12 @@ export default async function OrderDetailPage({ params }: { params: { id: string
 function DetailItem({ label, value, isBadge }: { label: string; value?: string | null; isBadge?: boolean }) {
     if (!value) value = '---';
     return (
-        <div className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-wider text-muted font-bold">{label}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 600 }}>{label}</span>
             {isBadge && value !== '---' ? (
-                <span className="badge badge-info w-fit">{value}</span>
+                <span className="badge badge-info" style={{ width: 'fit-content' }}>{value}</span>
             ) : (
-                <span className="text-sm font-medium">{value}</span>
+                <span style={{ fontSize: 14, fontWeight: 500 }}>{value}</span>
             )}
         </div>
     );
@@ -207,9 +206,9 @@ function DetailItem({ label, value, isBadge }: { label: string; value?: string |
 
 function TimelineItem({ label, date, isImportant }: { label: string; date?: Date | null; isImportant?: boolean }) {
     return (
-        <div className="flex justify-between items-center text-sm">
-            <span className="text-muted">{label}</span>
-            <span className={`font-mono ${isImportant ? 'text-primary' : 'text-white/80'}`}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+            <span style={{ color: 'var(--text-tertiary)' }}>{label}</span>
+            <span style={{ fontFamily: 'monospace', color: isImportant ? 'var(--brand-primary-light)' : 'var(--text-secondary)', fontWeight: isImportant ? 600 : 400 }}>
                 {date ? new Date(date).toLocaleDateString() : '---'}
             </span>
         </div>
@@ -221,6 +220,8 @@ function getStatusColor(status: string) {
     if (status.includes('Completed Pending')) return 'info';
     if (status === 'Open') return 'warning';
     if (status === 'Cancelled') return 'danger';
-    if (status === 'Unassigned') return 'muted';
-    return 'primary';
+    if (status === 'Unassigned') return 'gray';
+    if (status.includes('Submitted')) return 'purple';
+    if (status === 'Paid') return 'teal';
+    return 'brand';
 }

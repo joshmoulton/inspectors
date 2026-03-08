@@ -3,6 +3,7 @@
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { User, Lock } from 'lucide-react';
 
 export default function LoginPage() {
     const [username, setUsername] = useState('');
@@ -37,61 +38,82 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-black">
-            <div className="w-full max-w-md p-8 card glass animate-in zoom-in duration-500">
-                <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center text-primary text-3xl font-bold mx-auto mb-4">
+        <div className="login-bg">
+            <div className="login-card">
+                <div style={{ textAlign: 'center', marginBottom: 32 }}>
+                    <div style={{
+                        width: 56, height: 56,
+                        background: 'linear-gradient(135deg, var(--brand-primary), var(--brand-accent))',
+                        borderRadius: 16,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 24, fontWeight: 800, color: 'white',
+                        margin: '0 auto 16px',
+                        boxShadow: '0 0 30px rgba(99, 102, 241, 0.3)'
+                    }}>
                         P
                     </div>
-                    <h1 className="text-3xl font-bold text-white tracking-tight">Powerade</h1>
-                    <p className="text-muted text-sm mt-2 uppercase tracking-widest font-bold">Inspection Management</p>
+                    <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em' }}>Powerade</h1>
+                    <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 600 }}>Inspection Management</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     {error && (
-                        <div className="p-3 bg-danger/10 border border-danger/20 text-danger text-sm rounded-lg text-center animate-in shake-in">
+                        <div style={{
+                            padding: 12, background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.2)',
+                            color: 'var(--status-danger)', fontSize: 13, borderRadius: 10, textAlign: 'center'
+                        }}>
                             {error}
                         </div>
                     )}
 
-                    <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold uppercase text-muted tracking-wide">Username</label>
-                        <input
-                            type="text"
-                            className="form-control h-12"
-                            placeholder="Enter your username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            required
-                        />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <label style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-tertiary)', letterSpacing: '0.05em' }}>Username</label>
+                        <div className="login-input-wrapper">
+                            <User size={16} className="login-input-icon" />
+                            <input
+                                type="text"
+                                className="form-control"
+                                style={{ height: 48 }}
+                                placeholder="Enter your username"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                required
+                            />
+                        </div>
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold uppercase text-muted tracking-wide">Password</label>
-                        <input
-                            type="password"
-                            className="form-control h-12"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <label style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-tertiary)', letterSpacing: '0.05em' }}>Password</label>
+                        <div className="login-input-wrapper">
+                            <Lock size={16} className="login-input-icon" />
+                            <input
+                                type="password"
+                                className="form-control"
+                                style={{ height: 48 }}
+                                placeholder="Enter your password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                        </div>
                     </div>
 
                     <button
                         type="submit"
-                        className="btn btn-primary w-full h-12 text-lg font-bold mt-4"
+                        className="btn btn-primary"
+                        style={{ width: '100%', height: 48, fontSize: 15, fontWeight: 700, marginTop: 8 }}
                         disabled={isLoading}
                     >
                         {isLoading ? 'Signing in...' : 'Sign In'}
                     </button>
                 </form>
 
-                <div className="mt-8 text-center text-xs text-muted">
+                <div style={{ marginTop: 32, textAlign: 'center', fontSize: 11, color: 'var(--text-tertiary)' }}>
                     <p>&copy; 2026 Powerade. All rights reserved.</p>
-                    <div className="mt-4 flex justify-center gap-4">
-                        <button className="hover:text-white transition-colors">Privacy Policy</button>
-                        <button className="hover:text-white transition-colors">Terms of Service</button>
+                    <div style={{ marginTop: 12, display: 'flex', justifyContent: 'center', gap: 16 }}>
+                        <button style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 11, fontFamily: 'inherit' }}>Privacy Policy</button>
+                        <button style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 11, fontFamily: 'inherit' }}>Terms of Service</button>
                     </div>
                 </div>
             </div>

@@ -74,6 +74,7 @@ export async function updateOrder(id: string, formData: FormData) {
     const inspectorPay = parseFloat(formData.get('inspectorPay') as string) || 0;
     const clientPay = parseFloat(formData.get('clientPay') as string) || 0;
     const instructions = formData.get('instructions') as string;
+    const status = formData.get('status') as string;
 
     try {
         await prisma.workOrder.update({
@@ -93,7 +94,7 @@ export async function updateOrder(id: string, formData: FormData) {
                 inspectorPay,
                 clientPay,
                 instructions,
-                status: inspectorId ? 'Open' : 'Unassigned',
+                status: status || (inspectorId ? 'Open' : 'Unassigned'),
             },
         });
 
@@ -113,6 +114,31 @@ export async function updateOrder(id: string, formData: FormData) {
     }
 
     redirect(`/orders/${id}`);
+}
+
+export async function updateOrderStatus(orderId: string, newStatus: string) {
+    try {
+        await prisma.workOrder.update({
+            where: { id: orderId },
+            data: { status: newStatus },
+        });
+
+        await prisma.historyEntry.create({
+            data: {
+                action: `Status Changed to ${newStatus}`,
+                details: `Order status updated via web interface`,
+                orderId,
+            },
+        });
+
+        revalidatePath(`/orders/${orderId}`);
+        revalidatePath('/orders');
+        revalidatePath('/');
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to update order status:', error);
+        return { error: 'Failed to update order status' };
+    }
 }
 
 import { auth } from '@/auth';

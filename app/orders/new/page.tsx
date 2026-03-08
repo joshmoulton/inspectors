@@ -1,6 +1,8 @@
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { createOrder } from '@/lib/actions';
+import { INSPECTION_TYPES } from '@/lib/types';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 export default async function NewOrderPage() {
     const [clients, inspectors] = await Promise.all([
@@ -21,6 +23,8 @@ export default async function NewOrderPage() {
                 </div>
             </header>
 
+            <Breadcrumbs items={[{ label: 'Orders', href: '/orders' }, { label: 'New Order' }]} />
+
             <form id="new-order-form" action={createOrder} className="max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* Section: Basic Info */}
                 <section className="card glass p-6">
@@ -40,10 +44,7 @@ export default async function NewOrderPage() {
                         <div className="flex flex-col gap-2">
                             <label className="text-xs font-bold uppercase text-muted">Inspection Type</label>
                             <select name="type" className="form-control">
-                                <option>Standard Exterior</option>
-                                <option>Interior</option>
-                                <option>Contact</option>
-                                <option>Rush Residential</option>
+                                {INSPECTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                             </select>
                         </div>
                         <div className="flex flex-col gap-2">

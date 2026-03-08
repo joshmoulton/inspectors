@@ -3,6 +3,7 @@
 import { addComment } from '@/lib/actions';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Check, Send } from 'lucide-react';
 
 interface Comment {
     id: string;
@@ -66,7 +67,7 @@ export default function CommentSection({ orderId, initialComments }: CommentSect
                         <p className="text-sm text-white/90">{comment.text}</p>
                         {comment.showInspector && (
                             <div className="mt-2 text-[10px] text-success font-bold flex items-center gap-1">
-                                <span>✓</span> Visible to Inspector
+                                <Check size={10} /> Visible to Inspector
                             </div>
                         )}
                     </div>
@@ -97,7 +98,7 @@ export default function CommentSection({ orderId, initialComments }: CommentSect
                         className="btn btn-primary"
                         disabled={submitting || !text.trim()}
                     >
-                        {submitting ? 'Sending...' : 'Send Message'}
+                        <Send size={14} /> {submitting ? 'Sending...' : 'Send Message'}
                     </button>
                 </div>
             </form>
