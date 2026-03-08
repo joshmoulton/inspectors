@@ -9,12 +9,17 @@ export default function ContactsPage() {
 
 // Server Component handles data fetching
 async function ContactsLoader() {
-    const contacts = await prisma.contact.findMany({
-        orderBy: [
-            { lastName: 'asc' },
-            { firstName: 'asc' }
-        ]
-    });
+    let contacts: any[] = [];
+    try {
+        contacts = await prisma.contact.findMany({
+            orderBy: [
+                { lastName: 'asc' },
+                { firstName: 'asc' }
+            ]
+        });
+    } catch {
+        // Fallback to empty contacts on DB error
+    }
 
     return <ContactsClient initialContacts={contacts} />;
 }

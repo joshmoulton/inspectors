@@ -19,32 +19,30 @@ export default function OrderTabs({ tabs, children }: OrderTabsProps) {
 
     return (
         <>
-            <div className="flex items-center gap-1 border-b border-white/10 mb-6 relative">
+            <div className="tab-bar">
                 {tabs.map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`relative px-6 py-3 text-sm font-semibold transition-colors duration-200 ${activeTab === tab.id
-                                ? 'text-primary bg-primary/5'
-                                : 'text-muted hover:text-white hover:bg-white/5'
-                            }`}
+                        className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
                     >
                         {activeTab === tab.id && (
                             <motion.div
                                 layoutId="activeTabIndicator"
-                                className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary"
+                                className="tab-indicator"
                                 initial={false}
                                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                             />
                         )}
-                        <span className="relative z-10 flex items-center">
-                            {tab.label} {tab.count !== undefined && <span className="ml-1 opacity-60">({tab.count})</span>}
+                        <span style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center' }}>
+                            {tab.label}
+                            {tab.count !== undefined && <span className="tab-count" style={{ marginLeft: 4 }}>({tab.count})</span>}
                         </span>
                     </button>
                 ))}
             </div>
 
-            <div className="tab-content relative">
+            <div className="tab-content" style={{ position: 'relative' }}>
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={activeTab}

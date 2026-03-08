@@ -2,18 +2,23 @@ import prisma from '@/lib/prisma';
 import { Map, MapPin, Navigation, Clock, Users } from 'lucide-react';
 
 export default async function RoutesPage() {
-    const inspectors = await prisma.user.findMany({
-        where: { role: 'inspector' },
-        include: {
-            orders: {
-                where: { status: 'Open' },
-                select: { id: true },
-            }
-        },
-        orderBy: { firstName: 'asc' },
-    });
-
-    const totalOpenOrders = inspectors.reduce((sum, i) => sum + i.orders.length, 0);
+    let inspectors: any[] = [];
+    let totalOpenOrders = 0;
+    try {
+        inspectors = await prisma.user.findMany({
+            where: { role: 'inspector' },
+            include: {
+                orders: {
+                    where: { status: 'Open' },
+                    select: { id: true },
+                }
+            },
+            orderBy: { firstName: 'asc' },
+        });
+        totalOpenOrders = inspectors.reduce((sum: number, i: any) => sum + i.orders.length, 0);
+    } catch {
+        // Fallback to empty data on DB error
+    }
 
     return (
         <div className="page-container">

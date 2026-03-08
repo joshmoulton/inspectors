@@ -2,21 +2,27 @@ import prisma from '@/lib/prisma';
 import { BarChart3, TrendingUp, TrendingDown, FileText, Download, Calendar } from 'lucide-react';
 
 export default async function ReportsPage() {
-    const [orderStats, clientStats] = await Promise.all([
-        prisma.workOrder.groupBy({
-            by: ['status'],
-            _count: true,
-        }),
-        prisma.client.findMany({
-            include: {
-                _count: {
-                    select: { orders: true }
-                }
-            },
-            orderBy: { orders: { _count: 'desc' } },
-            take: 5
-        })
-    ]);
+    let orderStats: any[] = [];
+    let clientStats: any[] = [];
+    try {
+        [orderStats, clientStats] = await Promise.all([
+            prisma.workOrder.groupBy({
+                by: ['status'],
+                _count: true,
+            }),
+            prisma.client.findMany({
+                include: {
+                    _count: {
+                        select: { orders: true }
+                    }
+                },
+                orderBy: { orders: { _count: 'desc' } },
+                take: 5
+            })
+        ]);
+    } catch {
+        // Fallback to empty data on DB error
+    }
 
     const totalOrders = orderStats.reduce((acc: number, s: { _count: number }) => acc + s._count, 0);
 
