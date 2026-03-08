@@ -59,7 +59,7 @@ export default async function ReportsPage() {
                 <ReportStat label="Revenue (MTD)" value="$12,450" trend="+12%" positive={true} />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+            <div className="grid-2-col">
                 {/* Order Status Distribution */}
                 <div className="card" style={{ padding: 24 }}>
                     <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>

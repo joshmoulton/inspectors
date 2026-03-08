@@ -73,7 +73,7 @@ export default async function RoutesPage() {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 24 }}>
+            <div className="grid-sidebar-left">
                 {/* Inspector List */}
                 <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                     <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', fontWeight: 700, fontSize: 14 }}>

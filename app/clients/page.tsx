@@ -40,7 +40,7 @@ export default async function ClientsPage() {
                 </div>
             </header>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+            <div className="grid-sidebar-right">
                 {/* Left: Client List */}
                 <div>
                     <div className="card" style={{ overflow: 'hidden' }}>
