@@ -60,11 +60,11 @@ export default async function OrderDetailPage({ params }: { params: { id: string
 
             <OrderTabs tabs={tabs}>
                 {/* Overview Tab */}
-                <div key="overview" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+                <div key="overview" className="grid-sidebar-right">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                         <div className="card" style={{ padding: 24 }}>
                             <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>Property Information</h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 32px' }}>
+                            <div className="grid-detail-fields">
                                 <DetailItem label="Address 1" value={order.address1} />
                                 <DetailItem label="Address 2" value={order.address2} />
                                 <DetailItem label="City" value={order.city} />
@@ -78,7 +78,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
 
                         <div className="card" style={{ padding: 24 }}>
                             <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--border-subtle)' }}>Details & Financials</h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 32px' }}>
+                            <div className="grid-detail-fields">
                                 <DetailItem label="Lender / Mortgage Co" value={order.mortgageCompany} />
                                 <DetailItem label="Loan #" value={order.loanNumber} />
                                 <DetailItem label="Client Pay" value={order.clientPay ? `$${order.clientPay.toFixed(2)}` : '---'} />

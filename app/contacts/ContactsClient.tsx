@@ -177,7 +177,7 @@ export default function ContactsClient({ initialContacts }: { initialContacts: C
                         </div>
 
                         <form id="contact-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                            <div className="grid-2-col" style={{ gap: 16 }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                     <label className="form-label">First Name <span className="required">*</span></label>
                                     <input type="text" name="firstName" className="form-control" defaultValue={editingContact?.firstName || ''} required />
@@ -188,7 +188,7 @@ export default function ContactsClient({ initialContacts }: { initialContacts: C
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                            <div className="grid-2-col" style={{ gap: 16 }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                     <label className="form-label">Email</label>
                                     <input type="email" name="email" className="form-control" defaultValue={editingContact?.email || ''} />
@@ -199,7 +199,7 @@ export default function ContactsClient({ initialContacts }: { initialContacts: C
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                            <div className="grid-2-col" style={{ gap: 16 }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                     <label className="form-label">Company</label>
                                     <input type="text" name="company" className="form-control" defaultValue={editingContact?.company || ''} />

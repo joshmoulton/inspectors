@@ -945,6 +945,36 @@ select.filter-select:focus {
   margin-bottom: 48px;
 }
 
+/* ===== Responsive Grid Utilities ===== */
+.grid-2-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.grid-sidebar-right {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+.grid-sidebar-left {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+}
+
+.grid-detail-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 32px;
+}
+
+.photo-drop-zone {
+  padding: 48px;
+  text-align: center;
+}
+
 /* ===== Buttons ===== */
 .btn {
   height: 38px;
@@ -1406,6 +1436,39 @@ select.filter-select:focus {
   z-index: 99;
 }
 
+/* ===== Tablet Breakpoint ===== */
+@media (max-width: 1024px) {
+  .grid-sidebar-right,
+  .grid-sidebar-left {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .tab-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .tab-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .dropdown-menu {
+    right: auto;
+    left: 0;
+    max-width: calc(100vw - 32px);
+  }
+
+  .photo-drop-zone {
+    padding: 24px 16px;
+  }
+}
+
+/* ===== Phone Breakpoint ===== */
 @media (max-width: 768px) {
   .app-layout {
     flex-direction: column;
@@ -1476,7 +1539,75 @@ select.filter-select:focus {
   }
 
   .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid-2-col {
     grid-template-columns: 1fr;
+  }
+
+  .grid-detail-fields {
+    grid-template-columns: 1fr;
+  }
+
+  /* Touch targets */
+  .btn {
+    height: 44px;
+    padding: 0 20px;
+    font-size: 14px;
+  }
+
+  .btn-sm {
+    height: 40px;
+    padding: 0 16px;
+    font-size: 13px;
+  }
+
+  .btn-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .tab-button {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .header-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Dropdown: bottom sheet on phone */
+  .dropdown-wrapper {
+    position: static;
+  }
+
+  .dropdown-menu {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    min-width: unset;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .photo-drop-zone {
+    padding: 20px 12px;
   }
 
   .data-table th,

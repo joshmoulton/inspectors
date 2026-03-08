@@ -108,7 +108,7 @@ export default function DashboardClient({ stats, recentOrders, chartData, recent
             </motion.div>
 
             {/* Chart + Activity Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
+            <div className="grid-2-col" style={{ marginBottom: 24 }}>
                 {/* Area Chart */}
                 <motion.section
                     initial={{ opacity: 0, y: 20 }}

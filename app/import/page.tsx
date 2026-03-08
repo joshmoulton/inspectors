@@ -73,13 +73,12 @@ export default function ImportPage() {
                 </div>
             </header>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+            <div className="grid-sidebar-right">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                     {/* Drop Zone */}
                     <div
-                        className="card"
+                        className="card photo-drop-zone"
                         style={{
-                            padding: 48, textAlign: 'center',
                             border: isDragging ? '2px dashed var(--brand-primary-light)' : '2px dashed var(--border-subtle)',
                             background: isDragging ? 'rgba(99, 102, 241, 0.05)' : 'var(--bg-surface)',
                             transition: 'all 0.2s'
