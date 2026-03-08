@@ -2,6 +2,19 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+const mockChartData = [
+    { name: '1st', orders: 12 },
+    { name: '4th', orders: 18 },
+    { name: '8th', orders: 15 },
+    { name: '12th', orders: 25 },
+    { name: '16th', orders: 22 },
+    { name: '20th', orders: 30 },
+    { name: '24th', orders: 28 },
+    { name: '28th', orders: 35 },
+    { name: '31st', orders: 42 },
+];
 
 interface DashboardClientProps {
     stats: {
@@ -46,23 +59,93 @@ export default function DashboardClient({ stats, recentOrders }: DashboardClient
                 initial="hidden"
                 animate="show"
             >
-                <motion.div variants={item} className="stat-card">
+                <motion.div variants={item} className="stat-card relative overflow-hidden group">
                     <div className="stat-label">Total Orders</div>
                     <div className="stat-value">{stats.totalOrders}</div>
+                    <div className="absolute bottom-4 right-4 text-xs font-bold text-success opacity-0 group-hover:opacity-100 transition-opacity">↑ 12%</div>
                 </motion.div>
-                <motion.div variants={item} className="stat-card">
+                <motion.div variants={item} className="stat-card relative overflow-hidden group">
                     <div className="stat-label">Open Orders</div>
                     <div className="stat-value text-warning">{stats.openOrders}</div>
+                    <div className="absolute bottom-4 right-4 text-xs font-bold text-danger opacity-0 group-hover:opacity-100 transition-opacity">↑ 5%</div>
                 </motion.div>
-                <motion.div variants={item} className="stat-card">
+                <motion.div variants={item} className="stat-card relative overflow-hidden group">
                     <div className="stat-label">Completed</div>
                     <div className="stat-value text-success">{stats.completedOrders}</div>
+                    <div className="absolute bottom-4 right-4 text-xs font-bold text-success opacity-0 group-hover:opacity-100 transition-opacity">↑ 28%</div>
                 </motion.div>
-                <motion.div variants={item} className="stat-card">
+                <motion.div variants={item} className="stat-card relative overflow-hidden group">
                     <div className="stat-label">Pending QC</div>
                     <div className="stat-value text-info">2</div>
                 </motion.div>
             </motion.div>
+
+            {/* Area Chart Section */}
+            <motion.section
+                className="dashboard-section mt-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, type: 'spring', stiffness: 300, damping: 24 }}
+            >
+                <div className="card glass p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 className="text-lg font-bold text-white">Order Volume</h2>
+                            <p className="text-xs text-muted">Last 30 Days</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <span className="badge badge-primary">Weekly</span>
+                            <span className="badge bg-white/5 text-muted hover:text-white cursor-pointer transition-colors">Monthly</span>
+                        </div>
+                    </div>
+                    <div style={{ width: '100%', height: 350 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={mockChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#4facfe" stopOpacity={0.4} />
+                                        <stop offset="95%" stopColor="#4facfe" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                <XAxis
+                                    dataKey="name"
+                                    stroke="rgba(255,255,255,0.3)"
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    dy={10}
+                                />
+                                <YAxis
+                                    stroke="rgba(255,255,255,0.3)"
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    dx={-10}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        borderRadius: '8px',
+                                        backdropFilter: 'blur(10px)'
+                                    }}
+                                    itemStyle={{ color: '#fff' }}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="orders"
+                                    stroke="#4facfe"
+                                    strokeWidth={3}
+                                    fillOpacity={1}
+                                    fill="url(#colorOrders)"
+                                    animationDuration={1500}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </motion.section>
 
             <motion.section
                 className="dashboard-section mt-8"
