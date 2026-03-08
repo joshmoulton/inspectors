@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Search, ArrowUpDown, ClipboardList } from 'lucide-react';
+import Pagination from './Pagination';
+import EmptyState from './EmptyState';
 
 interface Order {
     id: string;
@@ -17,122 +20,213 @@ interface Order {
     inspector: { firstName: string; lastName: string } | null;
 }
 
+const PAGE_SIZE = 25;
+
+const STATUS_FILTERS = ['All', 'Open', 'Completed', 'Unassigned', 'Cancelled', 'Submitted', 'Paid'];
+
 export default function OrderTable({ initialOrders }: { initialOrders: any[] }) {
     const [orders] = useState(initialOrders);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [sortField, setSortField] = useState<string | null>(null);
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
-    const filteredOrders = orders.filter((order: any) => {
-        const matchesSearch =
-            order.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
-            order.address1?.toLowerCase().includes(search.toLowerCase()) ||
-            order.city?.toLowerCase().includes(search.toLowerCase());
+    const filteredOrders = useMemo(() => {
+        let result = orders.filter((order: any) => {
+            const matchesSearch =
+                order.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
+                order.address1?.toLowerCase().includes(search.toLowerCase()) ||
+                order.city?.toLowerCase().includes(search.toLowerCase());
+            const matchesStatus = statusFilter === 'All' || order.status.includes(statusFilter);
+            return matchesSearch && matchesStatus;
+        });
 
-        const matchesStatus = statusFilter === 'All' || order.status.includes(statusFilter);
+        if (sortField) {
+            result = [...result].sort((a: any, b: any) => {
+                let valA = a[sortField] || '';
+                let valB = b[sortField] || '';
+                if (sortField === 'client') { valA = a.client?.code || ''; valB = b.client?.code || ''; }
+                if (sortField === 'inspector') { valA = a.inspector?.lastName || ''; valB = b.inspector?.lastName || ''; }
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+                if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+                if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
 
-        return matchesSearch && matchesStatus;
-    });
+        return result;
+    }, [orders, search, statusFilter, sortField, sortDir]);
+
+    const totalPages = Math.ceil(filteredOrders.length / PAGE_SIZE);
+    const paginatedOrders = filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+    function handleSort(field: string) {
+        if (sortField === field) {
+            setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortField(field);
+            setSortDir('asc');
+        }
+    }
+
+    // Reset to page 1 when filters change
+    function handleSearchChange(val: string) {
+        setSearch(val);
+        setCurrentPage(1);
+    }
+
+    function handleStatusChange(status: string) {
+        setStatusFilter(status);
+        setCurrentPage(1);
+    }
+
+    // Count orders per status for pills
+    const statusCounts = useMemo(() => {
+        const counts: Record<string, number> = { All: orders.length };
+        for (const s of STATUS_FILTERS.slice(1)) {
+            counts[s] = orders.filter((o: any) => o.status.includes(s)).length;
+        }
+        return counts;
+    }, [orders]);
 
     return (
         <>
-            <div className="card glass p-4 mb-6 flex flex-wrap items-center gap-4">
-                <div className="flex-1 min-w-[200px]">
-                    <input
-                        type="text"
-                        placeholder="Search by order # or address..."
-                        className="form-control"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
+            {/* Search + Filter Bar */}
+            <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+                    <div className="search-input-wrapper">
+                        <Search size={16} className="search-icon" />
+                        <input
+                            type="text"
+                            placeholder="Search by order #, address, or city..."
+                            className="form-control"
+                            value={search}
+                            onChange={(e) => handleSearchChange(e.target.value)}
+                        />
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                        {filteredOrders.length} of {orders.length} orders
+                    </div>
                 </div>
-                <select
-                    className="form-control w-auto"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                    <option value="All">All Statuses</option>
-                    <option value="Open">Open</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Unassigned">Unassigned</option>
-                    <option value="Cancelled">Cancelled</option>
-                </select>
-                <div className="text-xs text-muted font-bold ml-auto">
-                    Showing {filteredOrders.length} of {orders.length} orders
+                <div className="filter-pills">
+                    {STATUS_FILTERS.map((status) => (
+                        <button
+                            key={status}
+                            className={`filter-pill ${statusFilter === status ? 'active' : ''}`}
+                            onClick={() => handleStatusChange(status)}
+                        >
+                            {status}
+                            <span className="pill-count">{statusCounts[status] || 0}</span>
+                        </button>
+                    ))}
                 </div>
             </div>
 
-            <div className="card glass overflow-hidden">
-                <div className="table-scroll">
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Order #</th>
-                                <th>Type</th>
-                                <th>Client</th>
-                                <th>Address</th>
-                                <th>City</th>
-                                <th>State</th>
-                                <th>Due Date</th>
-                                <th>Inspector</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <AnimatePresence>
-                                {filteredOrders.map((order: any) => (
-                                    <motion.tr
-                                        key={order.id}
-                                        layout
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, scale: 0.95 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="hover:bg-white/5 transition-colors"
-                                    >
-                                        <td className="font-bold text-primary">
-                                            <Link href={`/orders/${order.id}`}>{order.orderNumber}</Link>
-                                        </td>
-                                        <td>{order.type}</td>
-                                        <td>
-                                            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white/10 uppercase tracking-wider">
-                                                {order.client?.code || '---'}
+            {/* Table */}
+            <div className="card" style={{ overflow: 'hidden' }}>
+                {paginatedOrders.length > 0 ? (
+                    <>
+                        <div className="table-scroll">
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th onClick={() => handleSort('orderNumber')} style={{ cursor: 'pointer' }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                Order # <ArrowUpDown size={12} />
                                             </span>
-                                        </td>
-                                        <td className="max-w-[150px] truncate">{order.address1}</td>
-                                        <td>{order.city}</td>
-                                        <td className="text-center">{order.state}</td>
-                                        <td className="text-sm">
-                                            {order.dueDate ? new Date(order.dueDate).toLocaleDateString() : '---'}
-                                        </td>
-                                        <td>
-                                            {order.inspector ? (
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold">
-                                                        {order.inspector.firstName[0]}{order.inspector.lastName[0]}
-                                                    </div>
-                                                    <span className="text-xs">{order.inspector.firstName[0]}. {order.inspector.lastName}</span>
-                                                </div>
-                                            ) : (
-                                                <span className="text-xs text-muted italic">Unassigned</span>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <span className={`badge badge-${getStatusColor(order.status)}`}>
-                                                {order.status}
+                                        </th>
+                                        <th>Type</th>
+                                        <th onClick={() => handleSort('client')} style={{ cursor: 'pointer' }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                Client <ArrowUpDown size={12} />
                                             </span>
-                                        </td>
-                                        <td>
-                                            <Link href={`/orders/${order.id}`} className="text-xs text-primary hover:underline">Details</Link>
-                                        </td>
-                                    </motion.tr>
-                                ))}
-                            </AnimatePresence>
-                        </tbody>
-                    </table>
-                </div>
-                {filteredOrders.length === 0 && (
-                    <div className="p-12 text-center text-muted italic">No orders found matching your criteria.</div>
+                                        </th>
+                                        <th>Address</th>
+                                        <th>City</th>
+                                        <th>State</th>
+                                        <th onClick={() => handleSort('dueDate')} style={{ cursor: 'pointer' }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                Due Date <ArrowUpDown size={12} />
+                                            </span>
+                                        </th>
+                                        <th>Inspector</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <AnimatePresence>
+                                        {paginatedOrders.map((order: any) => (
+                                            <motion.tr
+                                                key={order.id}
+                                                layout
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, scale: 0.95 }}
+                                                transition={{ duration: 0.2 }}
+                                            >
+                                                <td style={{ fontWeight: 700, color: 'var(--brand-primary-light)' }}>
+                                                    <Link href={`/orders/${order.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{order.orderNumber}</Link>
+                                                </td>
+                                                <td>{order.type}</td>
+                                                <td>
+                                                    <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                        {order.client?.code || '---'}
+                                                    </span>
+                                                </td>
+                                                <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{order.address1}</td>
+                                                <td>{order.city}</td>
+                                                <td style={{ textAlign: 'center' }}>{order.state}</td>
+                                                <td style={{ fontSize: 13 }}>
+                                                    {order.dueDate ? new Date(order.dueDate).toLocaleDateString() : '---'}
+                                                </td>
+                                                <td>
+                                                    {order.inspector ? (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            <div style={{
+                                                                width: 24, height: 24, borderRadius: '50%',
+                                                                background: 'rgba(99, 102, 241, 0.2)',
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                fontSize: 10, fontWeight: 700, color: 'var(--brand-primary-light)'
+                                                            }}>
+                                                                {order.inspector.firstName[0]}{order.inspector.lastName[0]}
+                                                            </div>
+                                                            <span style={{ fontSize: 12 }}>{order.inspector.firstName[0]}. {order.inspector.lastName}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Unassigned</span>
+                                                    )}
+                                                </td>
+                                                <td>
+                                                    <span className={`badge badge-${getStatusColor(order.status)}`}>
+                                                        {order.status}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <Link href={`/orders/${order.id}`} style={{ fontSize: 12, color: 'var(--brand-primary-light)', textDecoration: 'none' }}>Details</Link>
+                                                </td>
+                                            </motion.tr>
+                                        ))}
+                                    </AnimatePresence>
+                                </tbody>
+                            </table>
+                        </div>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            totalItems={filteredOrders.length}
+                            pageSize={PAGE_SIZE}
+                            onPageChange={setCurrentPage}
+                        />
+                    </>
+                ) : (
+                    <EmptyState
+                        icon={<ClipboardList size={48} />}
+                        title="No orders found"
+                        description="Try adjusting your search or filter criteria to find what you're looking for."
+                    />
                 )}
             </div>
         </>
@@ -144,6 +238,8 @@ function getStatusColor(status: string) {
     if (status.includes('Completed Pending')) return 'info';
     if (status === 'Open') return 'warning';
     if (status === 'Cancelled') return 'danger';
-    if (status === 'Unassigned') return 'muted';
-    return 'primary';
+    if (status === 'Unassigned') return 'gray';
+    if (status.includes('Submitted')) return 'purple';
+    if (status === 'Paid') return 'teal';
+    return 'brand';
 }
