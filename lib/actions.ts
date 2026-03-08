@@ -53,7 +53,7 @@ export async function createOrder(formData: FormData) {
         revalidatePath('/');
     } catch (error) {
         console.error('Failed to create order:', error);
-        return { error: 'Failed to create order.' };
+        throw new Error('Failed to create order');
     }
 
     redirect('/orders');
@@ -109,7 +109,7 @@ export async function updateOrder(id: string, formData: FormData) {
         revalidatePath('/orders');
     } catch (error) {
         console.error('Failed to update order:', error);
-        return { error: 'Failed to update order.' };
+        throw new Error('Failed to update order');
     }
 
     redirect(`/orders/${id}`);

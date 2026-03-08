@@ -29,7 +29,7 @@ export async function createUser(formData: FormData) {
         revalidatePath('/users');
     } catch (error) {
         console.error('Failed to create user:', error);
-        return { error: 'Failed to create user.' };
+        throw new Error('Failed to create user');
     }
     redirect('/users');
 }
@@ -45,7 +45,7 @@ export async function createClient(formData: FormData) {
         revalidatePath('/clients');
     } catch (error) {
         console.error('Failed to create client:', error);
-        return { error: 'Failed to create client.' };
+        throw new Error('Failed to create client');
     }
     redirect('/clients');
 }
