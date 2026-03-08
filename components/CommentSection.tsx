@@ -51,45 +51,55 @@ export default function CommentSection({ orderId, initialComments }: CommentSect
     }
 
     return (
-        <div className="card glass p-6">
-            <h3 className="text-lg font-bold mb-4 border-b border-white/5 pb-2">Conversation</h3>
-            <div className="space-y-4 mb-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="card" style={{ padding: 24 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border-subtle)' }}>
+                Conversation
+            </h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 400, overflowY: 'auto', marginBottom: 20, paddingRight: 8 }}>
                 {comments.map((comment) => (
-                    <div key={comment.id} className="p-4 rounded-lg bg-white/5 border border-white/5 animate-in fade-in duration-300">
-                        <div className="flex justify-between items-start mb-2">
-                            <span className="text-sm font-bold text-primary">
+                    <div key={comment.id} style={{
+                        padding: 16, borderRadius: 'var(--radius-md)',
+                        background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-primary-light)' }}>
                                 {comment.author ? `${comment.author.firstName} ${comment.author.lastName}` : 'System'}
                             </span>
-                            <span className="text-[10px] text-muted uppercase font-mono">
+                            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', fontFamily: 'monospace' }}>
                                 {new Date(comment.createdAt).toLocaleString()}
                             </span>
                         </div>
-                        <p className="text-sm text-white/90">{comment.text}</p>
+                        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{comment.text}</p>
                         {comment.showInspector && (
-                            <div className="mt-2 text-[10px] text-success font-bold flex items-center gap-1">
+                            <div style={{ marginTop: 8, fontSize: 10, color: 'var(--status-success)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
                                 <Check size={10} /> Visible to Inspector
                             </div>
                         )}
                     </div>
                 ))}
-                {comments.length === 0 && <p className="text-center text-muted italic p-4">No comments yet.</p>}
+                {comments.length === 0 && (
+                    <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: 24 }}>
+                        No comments yet.
+                    </p>
+                )}
             </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <textarea
                     value={text}
                     onChange={(e) => setText(e.target.value)}
-                    className="form-control min-h-[100px]"
+                    className="form-control"
+                    style={{ minHeight: 100 }}
                     placeholder="Write a message..."
                     disabled={submitting}
-                ></textarea>
-                <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 text-xs text-muted cursor-pointer hover:text-white transition-colors">
+                />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-tertiary)', cursor: 'pointer' }}>
                         <input
                             type="checkbox"
                             checked={showInspector}
                             onChange={(e) => setShowInspector(e.target.checked)}
-                            className="rounded border-white/20 bg-transparent"
                         />
                         Show to Inspector
                     </label>

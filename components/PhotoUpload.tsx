@@ -3,15 +3,15 @@
 import { useState, useCallback } from 'react';
 import { uploadPhotos } from '@/lib/actions';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation'; // Keep useRouter for router.refresh()
+import { useRouter } from 'next/navigation';
+import { Camera, Upload, X } from 'lucide-react';
 
 export default function PhotoUpload({ orderId }: { orderId: string }) {
-    const [isDragging, setIsDragging] = useState(false); // Keep isDragging state as it's used in JSX
+    const [isDragging, setIsDragging] = useState(false);
     const [files, setFiles] = useState<File[]>([]);
     const [isUploading, setIsUploading] = useState(false);
-    const router = useRouter(); // Keep useRouter for router.refresh()
+    const router = useRouter();
 
-    // Handlers for drag and drop
     function handleDragOver(e: React.DragEvent) {
         e.preventDefault();
         setIsDragging(true);
@@ -37,27 +37,19 @@ export default function PhotoUpload({ orderId }: { orderId: string }) {
         }
     };
 
-    const removeFile = (index: number) => {
-        setFiles(prev => prev.filter((_, i) => i !== index));
-    };
-
     const handleUpload = async () => {
         if (files.length === 0 || isUploading) return;
-
         setIsUploading(true);
 
         const formData = new FormData();
-        // The original `uploadPhotos` action likely expects `orderId` as a separate argument,
-        // not appended to formData. Assuming the action signature remains `uploadPhotos(orderId, formData)`.
         files.forEach(file => formData.append('photos', file));
 
         try {
-            const result = await uploadPhotos(orderId, formData); // Pass orderId as first argument
-
-            if (result.success) { // Check for result.success as in original code
+            const result = await uploadPhotos(orderId, formData);
+            if (result.success) {
                 setFiles([]);
-                toast.success(`Successfully uploaded ${result.count || files.length} photos`); // Use result.count if available, else files.length
-                router.refresh(); // Keep router.refresh()
+                toast.success(`Successfully uploaded ${result.count || files.length} photos`);
+                router.refresh();
             } else {
                 toast.error(result.error || 'Upload failed');
             }
@@ -70,76 +62,115 @@ export default function PhotoUpload({ orderId }: { orderId: string }) {
     };
 
     return (
-        <div className="space-y-6">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            {/* Drop Zone */}
             <div
-                className={`card glass p-12 text-center border-dashed border-2 transition-all duration-300 ${isDragging ? 'border-primary bg-primary/5 scale-[1.01]' : 'border-white/10 hover:border-white/20'
-                    }`}
+                className="card"
+                style={{
+                    padding: 48, textAlign: 'center',
+                    border: isDragging ? '2px dashed var(--brand-primary-light)' : '2px dashed var(--border-default)',
+                    background: isDragging ? 'rgba(99, 102, 241, 0.05)' : 'var(--bg-surface)',
+                    transition: 'all 0.2s'
+                }}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
             >
-                <div style={{ marginBottom: 16, color: 'var(--brand-primary-light)', opacity: 0.5 }}><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
-                <h3 className="text-xl font-bold mb-2">Upload Inspection Photos</h3>
-                <p className="text-muted text-sm mb-6 max-w-xs mx-auto">
+                <div style={{
+                    width: 64, height: 64, borderRadius: 16,
+                    background: 'rgba(99, 102, 241, 0.08)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    margin: '0 auto 20px', color: 'var(--brand-primary-light)'
+                }}>
+                    <Camera size={28} />
+                </div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Upload Inspection Photos</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-tertiary)', maxWidth: 320, margin: '0 auto 24px', lineHeight: 1.5 }}>
                     Drag and drop your property photos here, or click to browse files.
                 </p>
                 <input
                     type="file"
                     id="photo-input"
                     multiple
-                    className="hidden"
+                    style={{ display: 'none' }}
                     onChange={handleFileSelect}
                     accept="image/*"
                     disabled={isUploading}
                 />
-                <label htmlFor="photo-input" className={`btn btn-primary cursor-pointer ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                    {isUploading ? 'Processing...' : 'Select Photos'}
+                <label htmlFor="photo-input" className="btn btn-primary" style={{ cursor: isUploading ? 'not-allowed' : 'pointer', opacity: isUploading ? 0.5 : 1 }}>
+                    <Upload size={14} /> {isUploading ? 'Processing...' : 'Select Photos'}
                 </label>
             </div>
 
+            {/* Photo Grid */}
             {files.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 animate-in fade-in slide-in-from-bottom-4">
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                    gap: 12
+                }}>
                     {files.map((file: File, i: number) => (
-                        <div key={i} className="group relative aspect-square rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                        <div key={i} style={{
+                            position: 'relative', aspectRatio: '1', borderRadius: 'var(--radius-md)',
+                            overflow: 'hidden', background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid var(--border-subtle)'
+                        }}>
                             <img
                                 src={URL.createObjectURL(file)}
                                 alt="preview"
-                                className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             />
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <button
-                                    onClick={() => setFiles((prev: File[]) => prev.filter((_: File, idx: number) => idx !== i))}
-                                    className="text-xs font-bold text-danger hover:underline"
-                                    disabled={isUploading}
-                                >
-                                    Remove
-                                </button>
-                            </div>
-                            <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/80 text-[8px] font-mono text-white/50">
+                            <button
+                                onClick={() => setFiles((prev: File[]) => prev.filter((_: File, idx: number) => idx !== i))}
+                                disabled={isUploading}
+                                style={{
+                                    position: 'absolute', top: 6, right: 6,
+                                    width: 24, height: 24, borderRadius: '50%',
+                                    background: 'rgba(0,0,0,0.7)', border: 'none',
+                                    color: 'white', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                }}
+                            >
+                                <X size={12} />
+                            </button>
+                            <div style={{
+                                position: 'absolute', bottom: 4, right: 4,
+                                padding: '2px 6px', borderRadius: 4,
+                                background: 'rgba(0,0,0,0.75)', fontSize: 9,
+                                fontFamily: 'monospace', color: 'rgba(255,255,255,0.5)'
+                            }}>
                                 {(file.size / 1024).toFixed(0)}KB
                             </div>
                         </div>
                     ))}
                     {!isUploading && (
                         <button
-                            className="aspect-square flex flex-col items-center justify-center rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 transition-colors"
                             onClick={() => document.getElementById('photo-input')?.click()}
+                            style={{
+                                aspectRatio: '1', display: 'flex', flexDirection: 'column',
+                                alignItems: 'center', justifyContent: 'center',
+                                borderRadius: 'var(--radius-md)',
+                                border: '1px dashed var(--border-default)',
+                                background: 'transparent', cursor: 'pointer',
+                                color: 'var(--text-tertiary)', transition: 'all 0.15s'
+                            }}
                         >
-                            <span className="text-2xl text-muted">+</span>
-                            <span className="text-[10px] text-muted font-bold uppercase">Add More</span>
+                            <span style={{ fontSize: 24, marginBottom: 4 }}>+</span>
+                            <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>Add More</span>
                         </button>
                     )}
                 </div>
             )}
 
+            {/* Upload Button */}
             {files.length > 0 && (
-                <div className="flex justify-end pt-4">
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <button
-                        className="btn btn-primary px-12"
+                        className="btn btn-primary"
                         onClick={handleUpload}
                         disabled={isUploading}
                     >
-                        {isUploading ? 'Uploading...' : `Upload ${files.length} Photos`}
+                        <Upload size={14} /> {isUploading ? 'Uploading...' : `Upload ${files.length} Photos`}
                     </button>
                 </div>
             )}
