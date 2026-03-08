@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  email     String?
+  firstName String
+  lastName  String
+  role      String   @default("inspector") // admin, manager, inspector
+  phone     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedOrders  WorkOrder[] @relation("InspectorOrders")
+  reviewedOrders  WorkOrder[] @relation("QCOrders")
+  comments        Comment[]
+  events          Event[]
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  code      String?  @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders   WorkOrder[]
+  logins   ClientLogin[]
+  contacts Contact[]
+}
+
+model ClientLogin {
+  id       String @id @default(cuid())
+  name     String
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
+}
+
+model WorkOrder {
+  id          String @id @default(cuid())
+  orderNumber String @unique
+
+  // Classification
+  type         String  @default("Standard") // Standard, Interior, Contact, etc.
+  status       String  @default("Unassigned") // Unassigned, Open, Cancelled, etc.
+  clientStatus String? // Open, Completed, Closed
+  workCode     String?
+
+  // Associations
+  clientId    String?
+  client      Client? @relation(fields: [clientId], references: [id])
+  inspectorId String?
+  inspector   User?   @relation("InspectorOrders", fields: [inspectorId], references: [id])
+  qcUserId    String?
+  qcUser      User?   @relation("QCOrders", fields: [qcUserId], references: [id])
+
+  // Property Address
+  address1  String?
+  address2  String?
+  city      String?
+  state     String?
+  zip       String?
+  county    String?
+  latitude  Float?
+  longitude Float?
+
+  // Timeline & Dates
+  dueDate          DateTime?
+  windowStartDate  DateTime?
+  windowEndDate    DateTime?
+  inspectorDueDate DateTime?
+  orderedDate      DateTime?
+  assignedDate     DateTime?
+  completedDate    DateTime?
+  submittedDate    DateTime?
+  paidDate         DateTime?
+  followUpDate     DateTime?
+  ecd              DateTime?
+
+  // Financials
+  inspectorPay Float?
+  clientPay    Float?
+  clientPaid   Boolean @default(false)
+
+  // Flags
+  vacant       Boolean @default(false)
+  photoRequired Boolean @default(true)
+  rushFlag     Boolean @default(false)
+  autoApprove  Int     @default(0) // 0=use inspector settings, 1=off, 2=on
+  aspen        Boolean @default(false)
+  ecdNeeded    Boolean @default(true)
+  locked       Boolean @default(false)
+
+  // Lender Info
+  mortgageCompany String?
+  loanNumber      String?
+  owner           String?
+  vendor          String?
+  clientOrderNum  String?
+
+  // Text Fields
+  instructions    String?
+  doorCardMessage String?
+
+  // Auto-Inspection Fields
+  firstName       String?
+  middleInitial   String?
+  lastName        String?
+  homePhone       String?
+  borrowerHomeAddr String?
+  borrowerWorkAddr String?
+  csFirstName     String?
+  csMiddleInitial String?
+  csLastName      String?
+  csHomeAddr      String?
+  csWorkAddr      String?
+  vehicleYear     String?
+  vehicleMake     String?
+  vehicleModel    String?
+  vin             String?
+  vehicleLicense  String?
+  vehicleLicState String?
+
+  // Tags/Flags (stored as comma-separated string for simplicity)
+  tags String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments    Comment[]
+  events      Event[]
+  attachments Attachment[]
+  history     HistoryEntry[]
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  title     String?
+  company   String?
+  notes     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clientId  String?
+  client    Client?  @relation(fields: [clientId], references: [id])
+}
+
+model Comment {
+  id            String   @id @default(cuid())
+  text          String
+  showInspector Boolean  @default(false)
+  authorId      String?
+  author        User?    @relation(fields: [authorId], references: [id])
+  orderId       String
+  order         WorkOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime?
+  status      String    @default("Pending") // Pending, Approved, Rejected
+  orderId     String
+  order       WorkOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdById String?
+  createdBy   User?     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Attachment {
+  id       String    @id @default(cuid())
+  filename String
+  url      String
+  size     Int?
+  type     String?
+  orderId  String
+  order    WorkOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model HistoryEntry {
+  id        String   @id @default(cuid())
+  action    String
+  details   String?
+  user      String?
+  orderId   String
+  order     WorkOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
