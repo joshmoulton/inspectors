@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { createClient } from '@/lib/mgmt-actions';
+import SubmitButton from '@/components/SubmitButton';
 import { Plus, Settings, Building2, ArrowRight } from 'lucide-react';
 
 export default async function ClientsPage() {
@@ -102,9 +103,9 @@ export default async function ClientsPage() {
                                 <label className="form-label">Short Code</label>
                                 <input type="text" name="code" className="form-control" placeholder="ALT" required />
                             </div>
-                            <button type="submit" className="btn btn-primary" style={{ marginTop: 4 }}>
+                            <SubmitButton style={{ marginTop: 4 }}>
                                 <Plus size={14} /> Add Client
-                            </button>
+                            </SubmitButton>
                         </form>
                     </div>
 

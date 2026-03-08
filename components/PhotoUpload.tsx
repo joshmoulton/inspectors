@@ -49,6 +49,7 @@ export default function PhotoUpload({ orderId }: { orderId: string }) {
             if (result.success) {
                 setFiles([]);
                 toast.success(`Successfully uploaded ${result.count || files.length} photos`);
+                router.push(`/orders/${orderId}#photos`);
                 router.refresh();
             } else {
                 toast.error(result.error || 'Upload failed');

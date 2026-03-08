@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import OrderTabs from '@/components/OrderTabs';
 import CommentSection from '@/components/CommentSection';
 import PhotoUpload from '@/components/PhotoUpload';
+import StatusStepper from '@/components/StatusStepper';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import OrderDetailActions from './OrderDetailActions';
 
@@ -57,6 +58,17 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                     <OrderDetailActions orderId={id} currentStatus={order.status} />
                 </div>
             </header>
+
+            <div className="card" style={{ padding: '16px 24px', marginBottom: 24 }}>
+                <StatusStepper order={{
+                    orderedDate: order.orderedDate,
+                    assignedDate: order.assignedDate,
+                    completedDate: order.completedDate,
+                    status: order.status,
+                    submittedDate: order.submittedDate,
+                    paidDate: order.paidDate,
+                }} />
+            </div>
 
             <OrderTabs tabs={tabs}>
                 {/* Overview Tab */}
