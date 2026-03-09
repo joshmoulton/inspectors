@@ -92,6 +92,7 @@ export function Sidebar({ user, openOrdersCount = 0 }: { user: any, openOrdersCo
                         <input
                             type="text"
                             placeholder="Search orders..."
+                            aria-label="Search orders"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyDown={(e) => {

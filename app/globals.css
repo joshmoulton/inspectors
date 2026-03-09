@@ -2842,3 +2842,29 @@ textarea.form-control {
   background: var(--bg-surface-hover);
   color: var(--text-primary);
 }
+
+/* Skip to content - accessibility */
+.skip-to-content {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  z-index: 10000;
+  padding: 12px 24px;
+  background: var(--brand-primary);
+  color: white;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  transition: top 0.2s;
+}
+
+.skip-to-content:focus {
+  top: 16px;
+}
+
+/* Focus visible styles */
+*:focus-visible {
+  outline: 2px solid var(--brand-primary-light);
+  outline-offset: 2px;
+}

@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { Toaster } from 'sonner';
 import KeyboardShortcuts from '@/components/KeyboardShortcuts';
 import prisma from '@/lib/prisma';
+import { Suspense } from 'react';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -17,6 +18,13 @@ export const metadata: Metadata = {
   description: "Modern inspection order management platform",
 };
 
+async function SidebarWithData({ user }: { user: any }) {
+  const openOrdersCount = await prisma.workOrder.count({
+    where: { status: 'Open' }
+  });
+  return <Sidebar user={user} openOrdersCount={openOrdersCount} />;
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -24,24 +32,22 @@ export default async function RootLayout({
 }>) {
   const session = await auth();
 
-  let openOrdersCount = 0;
-  if (session) {
-    openOrdersCount = await prisma.workOrder.count({
-      where: { status: 'Open' }
-    });
-  }
-
   return (
     <html lang="en">
       <body>
+        <a href="#main-content" className="skip-to-content">Skip to content</a>
         <div className="app-layout">
-          {session && <Sidebar user={session.user} openOrdersCount={openOrdersCount} />}
-          <main className={session ? "main-content" : "w-full"}>
+          {session && (
+            <Suspense fallback={<aside className="sidebar" />}>
+              <SidebarWithData user={session.user} />
+            </Suspense>
+          )}
+          <main id="main-content" className={session ? "main-content" : "w-full"}>
             {children}
           </main>
         </div>
         {session && <KeyboardShortcuts />}
-        <Toaster theme="dark" position="bottom-right" className="powerade-toaster" />
+        <Toaster theme="dark" position="bottom-right" className="powerade-toaster" richColors closeButton />
       </body>
     </html>
   );

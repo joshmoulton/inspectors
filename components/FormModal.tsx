@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, FileText } from 'lucide-react';
 
 interface FormData {
@@ -24,6 +24,8 @@ export default function FormModal({ isOpen, onClose, onSubmit, initialData, mode
     const [description, setDescription] = useState('');
     const [fields, setFields] = useState(10);
     const [status, setStatus] = useState('Draft');
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
 
     useEffect(() => {
         if (initialData) {
@@ -39,6 +41,42 @@ export default function FormModal({ isOpen, onClose, onSubmit, initialData, mode
         }
     }, [initialData, isOpen]);
 
+    const handleKeyDown = useCallback((e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+            onClose();
+            return;
+        }
+        if (e.key === 'Tab' && dialogRef.current) {
+            const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            );
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        }
+    }, [onClose]);
+
+    useEffect(() => {
+        if (isOpen) {
+            previousFocusRef.current = document.activeElement as HTMLElement;
+            document.addEventListener('keydown', handleKeyDown);
+            requestAnimationFrame(() => {
+                dialogRef.current?.querySelector<HTMLElement>('input:not([disabled])')?.focus();
+            });
+        }
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            previousFocusRef.current?.focus();
+        };
+    }, [isOpen, handleKeyDown]);
+
     if (!isOpen) return null;
 
     const isPreview = mode === 'preview';
@@ -51,12 +89,20 @@ export default function FormModal({ isOpen, onClose, onSubmit, initialData, mode
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="confirm-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480, width: '100%' }}>
+            <div
+                ref={dialogRef}
+                className="confirm-dialog"
+                onClick={(e) => e.stopPropagation()}
+                style={{ maxWidth: 480, width: '100%' }}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="form-modal-title"
+            >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <h3 id="form-modal-title" style={{ fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
                         <FileText size={18} style={{ color: 'var(--brand-primary-light)' }} /> {title}
                     </h3>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer' }}>
+                    <button onClick={onClose} aria-label="Close dialog" style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer' }}>
                         <X size={18} />
                     </button>
                 </div>
@@ -82,6 +128,7 @@ export default function FormModal({ isOpen, onClose, onSubmit, initialData, mode
                             onChange={(e) => setDescription(e.target.value)}
                             disabled={isPreview}
                             placeholder="Describe the form's purpose..."
+                            maxLength={500}
                             style={{ minHeight: 80, resize: 'vertical' }}
                         />
                     </div>
