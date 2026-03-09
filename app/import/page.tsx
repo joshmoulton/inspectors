@@ -71,7 +71,7 @@ export default function ImportPage() {
     setPhase('cancelled');
   }
 
-  const sendBatch = useCallback(async (rows: Record<string, string>[], batchIndex: number) => {
+  async function sendBatch(rows: Record<string, string>[], batchIndex: number) {
     const res = await fetch('/api/import/batch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -88,7 +88,7 @@ export default function ImportPage() {
       updated: number;
       errors: { row: number; id: string; message: string }[];
     }>;
-  }, []);
+  }
 
   async function handleImport() {
     if (!file || phase === 'importing') return;
@@ -98,116 +98,67 @@ export default function ImportPage() {
     setStats({ total: 0, processed: 0, inserted: 0, updated: 0, errors: [] });
     setErrorMessage('');
 
-    // First pass: count rows
-    const totalRows = await new Promise<number>((resolve) => {
-      let count = 0;
-      Papa.parse(file, {
+    // Phase 1: Parse entire CSV into an array
+    // Papa Parse handles this efficiently even for large files
+    const allRows = await new Promise<Record<string, string>[]>((resolve, reject) => {
+      Papa.parse<Record<string, string>>(file, {
         header: true,
         skipEmptyLines: true,
-        step: () => { count++; },
-        complete: () => resolve(count),
-        error: () => resolve(0),
+        complete: (results) => resolve(results.data),
+        error: (err: Error) => reject(err),
       });
     });
 
-    if (totalRows === 0) {
+    if (allRows.length === 0) {
       setPhase('error');
       setErrorMessage('CSV file is empty or has no valid rows.');
       return;
     }
 
-    setStats(prev => ({ ...prev, total: totalRows }));
+    setStats(prev => ({ ...prev, total: allRows.length }));
     setPhase('importing');
 
-    // Second pass: stream and batch
-    let batch: Record<string, string>[] = [];
-    let batchIndex = 0;
+    // Phase 2: Process in sequential batches
+    let totalInserted = 0;
+    let totalUpdated = 0;
+    const allErrors: { row: number; id: string; message: string }[] = [];
 
-    // We need to use a promise-based approach to pause/resume parsing
-    await new Promise<void>((resolve, reject) => {
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        chunk: async (results: Papa.ParseResult<Record<string, string>>, parser: Papa.Parser) => {
-          if (cancelledRef.current) {
-            parser.abort();
-            resolve();
-            return;
-          }
+    for (let i = 0; i < allRows.length; i += BATCH_SIZE) {
+      if (cancelledRef.current) break;
 
-          // Add chunk rows to our batch buffer
-          batch.push(...results.data);
+      const batch = allRows.slice(i, i + BATCH_SIZE);
+      const batchIndex = Math.floor(i / BATCH_SIZE);
 
-          // Process complete batches
-          while (batch.length >= BATCH_SIZE) {
-            if (cancelledRef.current) {
-              parser.abort();
-              resolve();
-              return;
-            }
+      try {
+        const result = await sendBatch(batch, batchIndex);
+        totalInserted += result.inserted;
+        totalUpdated += result.updated;
+        allErrors.push(...result.errors);
 
-            const chunk = batch.splice(0, BATCH_SIZE);
-            parser.pause();
+        setStats({
+          total: allRows.length,
+          processed: Math.min(i + BATCH_SIZE, allRows.length),
+          inserted: totalInserted,
+          updated: totalUpdated,
+          errors: [...allErrors],
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Batch failed';
+        allErrors.push({ row: i, id: 'batch', message: msg });
 
-            try {
-              const result = await sendBatch(chunk, batchIndex);
-              batchIndex++;
-
-              setStats(prev => ({
-                ...prev,
-                processed: prev.processed + chunk.length,
-                inserted: prev.inserted + result.inserted,
-                updated: prev.updated + result.updated,
-                errors: [...prev.errors, ...result.errors],
-              }));
-            } catch (err) {
-              const msg = err instanceof Error ? err.message : 'Batch failed';
-              setStats(prev => ({
-                ...prev,
-                processed: prev.processed + chunk.length,
-                errors: [
-                  ...prev.errors,
-                  { row: batchIndex * BATCH_SIZE, id: 'batch', message: msg },
-                ],
-              }));
-            }
-
-            parser.resume();
-          }
-        },
-        complete: async () => {
-          // Send remaining rows
-          if (batch.length > 0 && !cancelledRef.current) {
-            try {
-              const result = await sendBatch(batch, batchIndex);
-              setStats(prev => ({
-                ...prev,
-                processed: prev.processed + batch.length,
-                inserted: prev.inserted + result.inserted,
-                updated: prev.updated + result.updated,
-                errors: [...prev.errors, ...result.errors],
-              }));
-            } catch (err) {
-              const msg = err instanceof Error ? err.message : 'Final batch failed';
-              setStats(prev => ({
-                ...prev,
-                processed: prev.processed + batch.length,
-                errors: [
-                  ...prev.errors,
-                  { row: batchIndex * BATCH_SIZE, id: 'batch', message: msg },
-                ],
-              }));
-            }
-          }
-          resolve();
-        },
-        error: (err: Error) => reject(err),
-      });
-    });
+        setStats({
+          total: allRows.length,
+          processed: Math.min(i + BATCH_SIZE, allRows.length),
+          inserted: totalInserted,
+          updated: totalUpdated,
+          errors: [...allErrors],
+        });
+      }
+    }
 
     if (cancelledRef.current) return;
 
-    // Finalize
+    // Phase 3: Finalize
     setPhase('finalizing');
     try {
       await fetch('/api/import/finalize', { method: 'POST' });
@@ -216,7 +167,7 @@ export default function ImportPage() {
     }
 
     setPhase('done');
-    toast.success(`Import complete: ${stats.inserted + stats.updated} orders processed`);
+    toast.success(`Import complete: ${totalInserted + totalUpdated} orders processed`);
     router.refresh();
   }
 

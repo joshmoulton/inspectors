@@ -34,9 +34,10 @@ interface ImportRow {
   Source?: string;
 }
 
-// Cache for client/inspector lookups within a single request
+// Cache for client/inspector lookups across batches (same server instance)
 const clientCache = new Map<string, string | null>();
 const inspectorCache = new Map<string, string | null>();
+const userCache = new Map<string, string | null>();
 
 function parseDate(value: string | undefined): Date | null {
   if (!value || value.trim() === '' || value === 'N/A') return null;
@@ -150,83 +151,77 @@ export async function POST(request: NextRequest) {
     let updated = 0;
     const errors: { row: number; id: string; message: string }[] = [];
 
-    // Process in a transaction for consistency
-    await prisma.$transaction(
-      async (tx) => {
-        for (let i = 0; i < rows.length; i++) {
-          const row = rows[i];
-          const rowIndex = batchIndex * 100 + i;
+    // Process rows individually (no transaction wrapper so one bad row doesn't kill the batch)
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowIndex = batchIndex * 100 + i;
 
-          try {
-            const orderNumber = row.ID?.trim();
-            if (!orderNumber) {
-              errors.push({ row: rowIndex, id: 'unknown', message: 'Missing ID field' });
-              continue;
-            }
-
-            // Lookups (use main prisma client for reads, tx for writes)
-            const clientId = await findOrCreateClient(row.Client || '');
-            const inspectorId = await findInspector(row.Inspector || '');
-            const qcUserId = await findInspector(row.QCUser || '');
-
-            const data = {
-              workCode: row.WorkCode?.trim() || null,
-              address1: row.Address?.trim() || null,
-              city: row.City?.trim() || null,
-              state: row.State?.trim() || null,
-              zip: row.Zip?.trim() || null,
-              county: row.CountyName?.trim() || null,
-              inspectorPay: row.InspectorPay ? parseFloat(row.InspectorPay) || null : null,
-              inspectorDueDate: parseDate(row.InspectorDueDate),
-              ecd: parseDate(row.ECD),
-              windowStartDate: parseDate(row.WindowStartDate),
-              windowEndDate: parseDate(row.WindowEndDate),
-              clientId,
-              inspectorId,
-              qcUserId,
-              assignedDate: parseDate(row.Assigned),
-              orderedDate: parseDate(row.Ordered),
-              completedDate: parseDate(row.Completed),
-              submittedDate: parseDate(row.Submitted) || parseDate(row.SubmittedToClient),
-              paidDate: parseDate(row.Paid),
-              mortgageCompany: row.Lender?.trim() || null,
-              loanNumber: row.LoanNumber?.trim() || null,
-              status: mapStatus(row.Status, row.Cancelled),
-              vacant: row.Vacant?.trim()?.toLowerCase() === 'yes',
-              instructions: row.Instructions?.trim() || null,
-              latitude: row.Latitude ? parseFloat(row.Latitude) || null : null,
-              longitude: row.Longitude ? parseFloat(row.Longitude) || null : null,
-              vendor: row.Source?.trim() || null,
-            };
-
-            const existing = await tx.workOrder.findUnique({
-              where: { orderNumber },
-              select: { id: true },
-            });
-
-            if (existing) {
-              await tx.workOrder.update({
-                where: { orderNumber },
-                data,
-              });
-              updated++;
-            } else {
-              await tx.workOrder.create({
-                data: {
-                  orderNumber,
-                  ...data,
-                },
-              });
-              inserted++;
-            }
-          } catch (err) {
-            const message = err instanceof Error ? err.message : 'Unknown error';
-            errors.push({ row: rowIndex, id: row.ID || 'unknown', message });
-          }
+      try {
+        const orderNumber = row.ID?.trim();
+        if (!orderNumber) {
+          errors.push({ row: rowIndex, id: 'unknown', message: 'Missing ID field' });
+          continue;
         }
-      },
-      { timeout: 60000 } // 60s timeout for large batches
-    );
+
+        const clientId = await findOrCreateClient(row.Client || '');
+        const inspectorId = await findInspector(row.Inspector || '');
+        const qcUserId = await findInspector(row.QCUser || '');
+
+        const data = {
+          workCode: row.WorkCode?.trim() || null,
+          address1: row.Address?.trim() || null,
+          city: row.City?.trim() || null,
+          state: row.State?.trim() || null,
+          zip: row.Zip?.trim() || null,
+          county: row.CountyName?.trim() || null,
+          inspectorPay: row.InspectorPay ? parseFloat(row.InspectorPay) || null : null,
+          inspectorDueDate: parseDate(row.InspectorDueDate),
+          ecd: parseDate(row.ECD),
+          windowStartDate: parseDate(row.WindowStartDate),
+          windowEndDate: parseDate(row.WindowEndDate),
+          clientId,
+          inspectorId,
+          qcUserId,
+          assignedDate: parseDate(row.Assigned),
+          orderedDate: parseDate(row.Ordered),
+          completedDate: parseDate(row.Completed),
+          submittedDate: parseDate(row.Submitted) || parseDate(row.SubmittedToClient),
+          paidDate: parseDate(row.Paid),
+          mortgageCompany: row.Lender?.trim() || null,
+          loanNumber: row.LoanNumber?.trim() || null,
+          status: mapStatus(row.Status, row.Cancelled),
+          vacant: row.Vacant?.trim()?.toLowerCase() === 'yes',
+          instructions: row.Instructions?.trim() || null,
+          latitude: row.Latitude ? parseFloat(row.Latitude) || null : null,
+          longitude: row.Longitude ? parseFloat(row.Longitude) || null : null,
+          vendor: row.Source?.trim() || null,
+        };
+
+        const existing = await prisma.workOrder.findUnique({
+          where: { orderNumber },
+          select: { id: true },
+        });
+
+        if (existing) {
+          await prisma.workOrder.update({
+            where: { orderNumber },
+            data,
+          });
+          updated++;
+        } else {
+          await prisma.workOrder.create({
+            data: {
+              orderNumber,
+              ...data,
+            },
+          });
+          inserted++;
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        errors.push({ row: rowIndex, id: row.ID || 'unknown', message });
+      }
+    }
 
     return NextResponse.json({ inserted, updated, errors });
   } catch (error) {
