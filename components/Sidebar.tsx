@@ -61,7 +61,7 @@ export function Sidebar({ user, openOrdersCount = 0 }: { user: any, openOrdersCo
     );
 
     const userDropdownItems = [
-        { label: 'Profile', icon: <User size={15} />, onClick: () => {} },
+        { label: 'Profile', icon: <User size={15} />, onClick: () => { router.push('/profile'); } },
         { label: 'Settings', icon: <Settings size={15} />, onClick: () => { window.location.href = '/utilities'; } },
         { divider: true, label: '' },
         { label: 'Sign Out', icon: <LogOut size={15} />, variant: 'danger' as const, onClick: () => signOut() },

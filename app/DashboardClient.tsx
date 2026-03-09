@@ -5,8 +5,19 @@ import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import {
     ClipboardList, Clock, CheckCircle, AlertTriangle, Plus, Upload, BarChart3,
-    FileText, UserCheck, Edit, ArrowRight
+    FileText, UserCheck, Edit, ArrowRight, CalendarClock, MapPin
 } from 'lucide-react';
+
+interface AlertOrder {
+    id: string;
+    orderNumber: string;
+    address1: string | null;
+    city: string | null;
+    state: string | null;
+    dueDate: string | null;
+    status: string;
+    type?: string | null;
+}
 
 interface DashboardClientProps {
     stats: {
@@ -18,6 +29,8 @@ interface DashboardClientProps {
     recentOrders: any[];
     chartData: { name: string; orders: number }[];
     recentActivity: { id: string; action: string; details: string | null; createdAt: string; orderNumber?: string }[];
+    overdueOrders: AlertOrder[];
+    dueTodayOrders: AlertOrder[];
 }
 
 const statConfig = [
@@ -27,7 +40,7 @@ const statConfig = [
     { key: 'pendingQC', label: 'Pending QC', icon: AlertTriangle, color: 'var(--status-info)', bg: 'rgba(59, 130, 246, 0.12)' },
 ];
 
-export default function DashboardClient({ stats, recentOrders, chartData, recentActivity }: DashboardClientProps) {
+export default function DashboardClient({ stats, recentOrders, chartData, recentActivity, overdueOrders, dueTodayOrders }: DashboardClientProps) {
     const container = {
         hidden: { opacity: 0 },
         show: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -106,6 +119,147 @@ export default function DashboardClient({ stats, recentOrders, chartData, recent
                     </div>
                 </Link>
             </motion.div>
+
+            {/* Alerts Row */}
+            {(overdueOrders.length > 0 || dueTodayOrders.length > 0) && (
+                <div className="grid-2-col" style={{ marginBottom: 24 }}>
+                    {/* Overdue Alerts */}
+                    {overdueOrders.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.25 }}
+                        >
+                            <div className="card" style={{
+                                padding: 0, overflow: 'hidden',
+                                border: '1px solid rgba(239, 68, 68, 0.2)',
+                            }}>
+                                <div style={{
+                                    padding: '14px 20px',
+                                    background: 'rgba(239, 68, 68, 0.06)',
+                                    borderBottom: '1px solid rgba(239, 68, 68, 0.15)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <AlertTriangle size={16} style={{ color: 'var(--status-danger)' }} />
+                                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--status-danger)' }}>
+                                            Overdue Orders
+                                        </span>
+                                        <span style={{
+                                            fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
+                                            background: 'rgba(239, 68, 68, 0.15)', color: 'var(--status-danger)',
+                                        }}>
+                                            {overdueOrders.length}
+                                        </span>
+                                    </div>
+                                    <Link href="/orders?status=Open&sort=dueDate&dir=asc" style={{ fontSize: 12, color: 'var(--status-danger)', textDecoration: 'none' }}>
+                                        View all
+                                    </Link>
+                                </div>
+                                <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                                    {overdueOrders.map(order => {
+                                        const daysOverdue = order.dueDate
+                                            ? Math.floor((Date.now() - new Date(order.dueDate).getTime()) / (1000 * 60 * 60 * 24))
+                                            : 0;
+                                        return (
+                                            <Link
+                                                key={order.id}
+                                                href={`/orders/${order.id}`}
+                                                style={{
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                    padding: '10px 20px', borderBottom: '1px solid var(--border-subtle)',
+                                                    textDecoration: 'none', color: 'inherit',
+                                                    transition: 'background 0.15s',
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-primary-light)' }}>
+                                                        #{order.orderNumber}
+                                                    </span>
+                                                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                                                        {order.city}, {order.state}
+                                                    </span>
+                                                </div>
+                                                <span style={{
+                                                    fontSize: 11, fontWeight: 700, color: 'var(--status-danger)',
+                                                    fontFamily: 'monospace',
+                                                }}>
+                                                    {daysOverdue}d overdue
+                                                </span>
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* Due Today */}
+                    {dueTodayOrders.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.28 }}
+                        >
+                            <div className="card" style={{
+                                padding: 0, overflow: 'hidden',
+                                border: '1px solid rgba(245, 158, 11, 0.2)',
+                            }}>
+                                <div style={{
+                                    padding: '14px 20px',
+                                    background: 'rgba(245, 158, 11, 0.06)',
+                                    borderBottom: '1px solid rgba(245, 158, 11, 0.15)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <CalendarClock size={16} style={{ color: 'var(--status-warning)' }} />
+                                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--status-warning)' }}>
+                                            Due Today
+                                        </span>
+                                        <span style={{
+                                            fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
+                                            background: 'rgba(245, 158, 11, 0.15)', color: 'var(--status-warning)',
+                                        }}>
+                                            {dueTodayOrders.length}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                                    {dueTodayOrders.map(order => (
+                                        <Link
+                                            key={order.id}
+                                            href={`/orders/${order.id}`}
+                                            style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                padding: '10px 20px', borderBottom: '1px solid var(--border-subtle)',
+                                                textDecoration: 'none', color: 'inherit',
+                                                transition: 'background 0.15s',
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-primary-light)' }}>
+                                                    #{order.orderNumber}
+                                                </span>
+                                                <span style={{ fontSize: 12, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                    <MapPin size={11} /> {order.city}, {order.state}
+                                                </span>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                {order.type && (
+                                                    <span className="badge badge-info" style={{ fontSize: 10 }}>{order.type}</span>
+                                                )}
+                                                <span className={`badge badge-${getStatusColor(order.status)}`} style={{ fontSize: 10 }}>
+                                                    {order.status}
+                                                </span>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </div>
+            )}
 
             {/* Chart + Activity Grid */}
             <div className="grid-2-col" style={{ marginBottom: 24 }}>

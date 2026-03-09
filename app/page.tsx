@@ -37,7 +37,12 @@ async function getChartData() {
 }
 
 async function getRecentData() {
-  const [recentOrders, recentHistory] = await Promise.all([
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayEnd = new Date(todayStart);
+  todayEnd.setDate(todayEnd.getDate() + 1);
+
+  const [recentOrders, recentHistory, overdueOrders, dueTodayOrders] = await Promise.all([
     prisma.workOrder.findMany({
       take: 5,
       orderBy: { createdAt: 'desc' },
@@ -47,6 +52,23 @@ async function getRecentData() {
       take: 10,
       orderBy: { createdAt: 'desc' },
       include: { order: { select: { orderNumber: true } } },
+    }),
+    prisma.workOrder.findMany({
+      where: {
+        dueDate: { lt: now },
+        status: { notIn: ['Paid', 'Cancelled', 'Submitted to Client'] },
+      },
+      take: 10,
+      orderBy: { dueDate: 'asc' },
+      select: { id: true, orderNumber: true, address1: true, city: true, state: true, dueDate: true, status: true },
+    }),
+    prisma.workOrder.findMany({
+      where: {
+        dueDate: { gte: todayStart, lt: todayEnd },
+        status: { notIn: ['Paid', 'Cancelled', 'Submitted to Client'] },
+      },
+      orderBy: { dueDate: 'asc' },
+      select: { id: true, orderNumber: true, address1: true, city: true, state: true, status: true, type: true },
     }),
   ]);
 
@@ -58,11 +80,22 @@ async function getRecentData() {
     orderNumber: h.order?.orderNumber || undefined,
   }));
 
-  return { recentOrders, recentActivity };
+  return {
+    recentOrders,
+    recentActivity,
+    overdueOrders: overdueOrders.map(o => ({
+      ...o,
+      dueDate: o.dueDate?.toISOString() || null,
+    })),
+    dueTodayOrders: dueTodayOrders.map(o => ({
+      ...o,
+      dueDate: null,
+    })),
+  };
 }
 
 async function DashboardContent() {
-  const [stats, chartData, { recentOrders, recentActivity }] = await Promise.all([
+  const [stats, chartData, { recentOrders, recentActivity, overdueOrders, dueTodayOrders }] = await Promise.all([
     getStats(),
     getChartData(),
     getRecentData(),
@@ -74,6 +107,8 @@ async function DashboardContent() {
       recentOrders={recentOrders}
       chartData={chartData}
       recentActivity={recentActivity}
+      overdueOrders={overdueOrders}
+      dueTodayOrders={dueTodayOrders}
     />
   );
 }
