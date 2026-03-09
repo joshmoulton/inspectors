@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, Suspense, lazy } from 'react';
 import Link from 'next/link';
-import { Map, MapPin, Navigation, Clock, Users, Phone, ChevronRight, Eye, ExternalLink } from 'lucide-react';
+import { MapPin, Navigation, Clock, Users, Phone, ChevronRight, Eye, ExternalLink, Map } from 'lucide-react';
+
+const RouteMap = lazy(() => import('@/components/RouteMap'));
 
 interface OrderLocation {
     id: string;
@@ -36,11 +38,18 @@ interface Inspector {
     }[];
 }
 
+// Inspector color palette for map differentiation
+const INSPECTOR_COLORS = [
+    '#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#ef4444',
+    '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#3b82f6',
+];
+
 export default function RoutesClient({ inspectors, orderLocations }: {
     inspectors: Inspector[];
     orderLocations: OrderLocation[];
 }) {
     const [selectedInspector, setSelectedInspector] = useState<string | null>(null);
+    const [showMap, setShowMap] = useState(true);
     const totalOpenOrders = inspectors.reduce((sum, i) => sum + i.orders.length, 0);
 
     const filteredLocations = selectedInspector
@@ -48,6 +57,29 @@ export default function RoutesClient({ inspectors, orderLocations }: {
         : orderLocations;
 
     const selectedInsp = inspectors.find(i => i.id === selectedInspector);
+
+    // Build inspector color map
+    const inspectorColorMap = useMemo(() => {
+        const map: Record<string, string> = {};
+        inspectors.forEach((insp, i) => {
+            map[insp.id] = INSPECTOR_COLORS[i % INSPECTOR_COLORS.length];
+        });
+        return map;
+    }, [inspectors]);
+
+    // Build map markers from filtered locations
+    const mapMarkers = useMemo(() => {
+        return filteredLocations
+            .filter(o => o.latitude && o.longitude)
+            .map(o => ({
+                id: o.id,
+                lat: o.latitude!,
+                lng: o.longitude!,
+                label: `#${o.orderNumber}`,
+                sublabel: `${o.address1 || ''}, ${o.city || ''} ${o.state || ''}${o.inspector ? ` — ${o.inspector.firstName} ${o.inspector.lastName}` : ''}`,
+                color: o.inspectorId ? inspectorColorMap[o.inspectorId] : '#94a3b8',
+            }));
+    }, [filteredLocations, inspectorColorMap]);
 
     return (
         <div className="page-container">
@@ -57,6 +89,12 @@ export default function RoutesClient({ inspectors, orderLocations }: {
                     <p className="page-subtitle">Manage inspector routes, view order locations, and track field operations.</p>
                 </div>
                 <div className="header-actions">
+                    <button
+                        className={`btn ${showMap ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setShowMap(!showMap)}
+                    >
+                        <Map size={16} /> {showMap ? 'Hide Map' : 'Show Map'}
+                    </button>
                     {selectedInspector && (
                         <button className="btn btn-secondary" onClick={() => setSelectedInspector(null)}>
                             Clear Filter
@@ -105,6 +143,51 @@ export default function RoutesClient({ inspectors, orderLocations }: {
                 </div>
             </div>
 
+            {/* Interactive Map */}
+            {showMap && (
+                <div style={{ marginBottom: 24 }}>
+                    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                        <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <Map size={16} style={{ color: 'var(--brand-primary-light)' }} /> Live Map
+                            </span>
+                            {selectedInspector && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: inspectorColorMap[selectedInspector] || '#6366f1' }} />
+                                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                                        {selectedInsp?.firstName} {selectedInsp?.lastName}
+                                    </span>
+                                </div>
+                            )}
+                            {!selectedInspector && inspectors.length > 0 && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    {inspectors.slice(0, 5).map((insp, i) => (
+                                        <div key={insp.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: INSPECTOR_COLORS[i % INSPECTOR_COLORS.length] }} />
+                                            <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>{insp.firstName[0]}{insp.lastName[0]}</span>
+                                        </div>
+                                    ))}
+                                    {inspectors.length > 5 && (
+                                        <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>+{inspectors.length - 5}</span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <Suspense fallback={
+                            <div style={{ height: 450, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>
+                                Loading map...
+                            </div>
+                        }>
+                            <RouteMap
+                                markers={mapMarkers}
+                                selectedId={selectedInspector || undefined}
+                                height={450}
+                            />
+                        </Suspense>
+                    </div>
+                </div>
+            )}
+
             <div className="grid-sidebar-left">
                 {/* Inspector List */}
                 <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -113,7 +196,7 @@ export default function RoutesClient({ inspectors, orderLocations }: {
                         <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 400 }}>{inspectors.length} total</span>
                     </div>
                     <div style={{ maxHeight: 600, overflowY: 'auto' }}>
-                        {inspectors.map((inspector) => (
+                        {inspectors.map((inspector, idx) => (
                             <div
                                 key={inspector.id}
                                 onClick={() => setSelectedInspector(selectedInspector === inspector.id ? null : inspector.id)}
@@ -122,15 +205,15 @@ export default function RoutesClient({ inspectors, orderLocations }: {
                                     padding: '12px 20px', borderBottom: '1px solid var(--border-subtle)',
                                     cursor: 'pointer', transition: 'background 0.15s',
                                     background: selectedInspector === inspector.id ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
-                                    borderLeft: selectedInspector === inspector.id ? '3px solid var(--brand-primary)' : '3px solid transparent',
+                                    borderLeft: `3px solid ${selectedInspector === inspector.id ? INSPECTOR_COLORS[idx % INSPECTOR_COLORS.length] : 'transparent'}`,
                                 }}
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     <div style={{
                                         width: 36, height: 36, borderRadius: '50%',
-                                        background: selectedInspector === inspector.id ? 'rgba(99, 102, 241, 0.25)' : 'rgba(99, 102, 241, 0.15)',
+                                        background: `${INSPECTOR_COLORS[idx % INSPECTOR_COLORS.length]}22`,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: 12, fontWeight: 700, color: 'var(--brand-primary-light)',
+                                        fontSize: 12, fontWeight: 700, color: INSPECTOR_COLORS[idx % INSPECTOR_COLORS.length],
                                     }}>
                                         {inspector.firstName[0]}{inspector.lastName[0]}
                                     </div>
@@ -158,9 +241,9 @@ export default function RoutesClient({ inspectors, orderLocations }: {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
                                 <div style={{
                                     width: 48, height: 48, borderRadius: '50%',
-                                    background: 'rgba(99, 102, 241, 0.15)',
+                                    background: `${inspectorColorMap[selectedInsp.id]}22`,
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 16, fontWeight: 700, color: 'var(--brand-primary-light)',
+                                    fontSize: 16, fontWeight: 700, color: inspectorColorMap[selectedInsp.id],
                                 }}>
                                     {selectedInsp.firstName[0]}{selectedInsp.lastName[0]}
                                 </div>
@@ -211,7 +294,7 @@ export default function RoutesClient({ inspectors, orderLocations }: {
                         </div>
                     )}
 
-                    {/* Order Locations List / Map View */}
+                    {/* Order Locations List */}
                     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -231,7 +314,7 @@ export default function RoutesClient({ inspectors, orderLocations }: {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                         <div style={{
                                             width: 8, height: 8, borderRadius: '50%',
-                                            background: order.latitude ? 'var(--status-success)' : 'var(--text-tertiary)',
+                                            background: order.latitude ? (order.inspectorId ? inspectorColorMap[order.inspectorId] || 'var(--status-success)' : 'var(--status-success)') : 'var(--text-tertiary)',
                                         }} />
                                         <div>
                                             <div style={{ fontSize: 13, fontWeight: 600 }}>

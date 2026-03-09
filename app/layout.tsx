@@ -12,11 +12,21 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
+  themeColor: '#6366f1',
 };
 
 export const metadata: Metadata = {
   title: "Powerade | Inspection Management",
   description: "Modern inspection order management platform",
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Powerade',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
 };
 
 async function SidebarWithData({ user }: { user: any }) {
