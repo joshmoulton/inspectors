@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'next/navigation';
 import DropdownMenu from './DropdownMenu';
 import NotificationBell from './NotificationBell';
+import ThemeToggle from './ThemeToggle';
 
 const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, href: '/', badge: null },
@@ -84,7 +85,12 @@ export function Sidebar({ user, openOrdersCount = 0 }: { user: any, openOrdersCo
                 <div className="sidebar-header">
                     <div className="sidebar-logo">P</div>
                     <span className="sidebar-title">Powerade</span>
-                    {!collapsed && <div style={{ marginLeft: 'auto' }}><NotificationBell /></div>}
+                    {!collapsed && (
+                        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <ThemeToggle />
+                            <NotificationBell />
+                        </div>
+                    )}
                 </div>
                 <div className="sidebar-search">
                     <div className="sidebar-search-wrapper">

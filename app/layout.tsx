@@ -7,6 +7,7 @@ import KeyboardShortcuts from '@/components/KeyboardShortcuts';
 import NavigationProgress from '@/components/NavigationProgress';
 import prisma from '@/lib/prisma';
 import { Suspense } from 'react';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -46,20 +47,22 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Suspense><NavigationProgress /></Suspense>
-        <a href="#main-content" className="skip-to-content">Skip to content</a>
-        <div className="app-layout">
-          {session && (
-            <Suspense fallback={<aside className="sidebar" />}>
-              <SidebarWithData user={session.user} />
-            </Suspense>
-          )}
-          <main id="main-content" className={session ? "main-content" : "w-full"}>
-            {children}
-          </main>
-        </div>
-        {session && <KeyboardShortcuts />}
-        <Toaster theme="dark" position="bottom-right" className="powerade-toaster" richColors closeButton />
+        <ThemeProvider>
+          <Suspense><NavigationProgress /></Suspense>
+          <a href="#main-content" className="skip-to-content">Skip to content</a>
+          <div className="app-layout">
+            {session && (
+              <Suspense fallback={<aside className="sidebar" />}>
+                <SidebarWithData user={session.user} />
+              </Suspense>
+            )}
+            <main id="main-content" className={session ? "main-content" : "w-full"}>
+              {children}
+            </main>
+          </div>
+          {session && <KeyboardShortcuts />}
+          <Toaster position="bottom-right" className="powerade-toaster" richColors closeButton />
+        </ThemeProvider>
       </body>
     </html>
   );

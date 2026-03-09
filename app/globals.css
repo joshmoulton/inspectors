@@ -76,6 +76,39 @@
   --space-16: 64px;
 }
 
+/* Light theme */
+[data-theme="light"] {
+  --brand-primary: #4f46e5;
+  --brand-primary-light: #6366f1;
+  --brand-primary-dark: #4338ca;
+  --brand-accent: #0891b2;
+  --brand-accent-light: #06b6d4;
+
+  --bg-root: #f5f5f7;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #ffffff;
+  --bg-surface-hover: #f0f0f3;
+  --bg-surface-active: #e8e8ed;
+  --bg-glass: rgba(255, 255, 255, 0.85);
+  --bg-glass-hover: rgba(255, 255, 255, 0.95);
+
+  --text-primary: #111118;
+  --text-secondary: #4a4a5a;
+  --text-tertiary: #8888a0;
+  --text-inverse: #f0f0f5;
+
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-default: rgba(0, 0, 0, 0.1);
+  --border-strong: rgba(0, 0, 0, 0.16);
+  --border-brand: rgba(79, 70, 229, 0.3);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 20px rgba(79, 70, 229, 0.08);
+  --shadow-glow-strong: 0 0 40px rgba(79, 70, 229, 0.12);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -1543,7 +1576,7 @@ select.filter-select:focus {
     position: sticky;
     top: 0;
     z-index: 40;
-    background: rgba(10, 10, 15, 0.85);
+    background: var(--bg-glass);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border-subtle);
@@ -1687,6 +1720,39 @@ select.filter-select:focus {
   .tabs {
     overflow-x: auto;
     padding: 0 16px;
+  }
+
+  /* Horizontal scroll for data tables on mobile */
+  .card:has(.data-table) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    min-width: 600px;
+  }
+
+  /* Page header: stack title and actions vertically */
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch !important;
+  }
+
+  /* Financial cards stack to single column */
+  .card [style*="grid-template-columns: repeat(3"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Breadcrumbs smaller on mobile */
+  .breadcrumb-item {
+    font-size: 11px;
+  }
+
+  /* Bottom sheet safe area for bulk action bar */
+  .bulk-action-bar,
+  [style*="position: sticky"][style*="bottom:"] {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
 
   .modal-overlay {
