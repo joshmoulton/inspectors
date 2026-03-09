@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { auth } from "@/auth";
 import { Toaster } from 'sonner';
 import KeyboardShortcuts from '@/components/KeyboardShortcuts';
+import NavigationProgress from '@/components/NavigationProgress';
 import prisma from '@/lib/prisma';
 import { Suspense } from 'react';
 
@@ -35,6 +36,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body>
+        <Suspense><NavigationProgress /></Suspense>
         <a href="#main-content" className="skip-to-content">Skip to content</a>
         <div className="app-layout">
           {session && (
