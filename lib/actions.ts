@@ -237,3 +237,79 @@ export async function uploadPhotos(orderId: string, formData: FormData) {
     }
 }
 
+export async function clearTestData() {
+    try {
+        const session = await auth();
+        if (!session?.user || (session.user as any).role !== 'admin') {
+            return { error: 'Unauthorized: Admin access required' };
+        }
+
+        // Delete in order to respect foreign key constraints
+        await prisma.historyEntry.deleteMany({});
+        await prisma.comment.deleteMany({});
+        await prisma.event.deleteMany({});
+        await prisma.attachment.deleteMany({});
+        await prisma.workOrder.deleteMany({});
+
+        revalidatePath('/');
+        revalidatePath('/orders');
+        return { success: true };
+    } catch (error) {
+        console.error('Clear test data error:', error);
+        return { error: 'Failed to clear test data' };
+    }
+}
+
+export async function bulkUpdateStatus(orderIds: string[], newStatus: string) {
+    try {
+        await prisma.workOrder.updateMany({
+            where: { id: { in: orderIds } },
+            data: { status: newStatus },
+        });
+
+        await prisma.historyEntry.createMany({
+            data: orderIds.map(orderId => ({
+                action: `Bulk Status Changed to ${newStatus}`,
+                details: 'Updated via bulk action',
+                orderId,
+            })),
+        });
+
+        revalidatePath('/orders');
+        revalidatePath('/');
+        return { success: true, count: orderIds.length };
+    } catch (error) {
+        console.error('Bulk status update error:', error);
+        return { error: 'Failed to update orders' };
+    }
+}
+
+export async function bulkAssignInspector(orderIds: string[], inspectorId: string) {
+    try {
+        await prisma.workOrder.updateMany({
+            where: { id: { in: orderIds } },
+            data: { inspectorId, status: 'Open' },
+        });
+
+        const inspector = await prisma.user.findUnique({
+            where: { id: inspectorId },
+            select: { firstName: true, lastName: true },
+        });
+
+        await prisma.historyEntry.createMany({
+            data: orderIds.map(orderId => ({
+                action: 'Bulk Inspector Assignment',
+                details: `Assigned to ${inspector?.firstName} ${inspector?.lastName}`,
+                orderId,
+            })),
+        });
+
+        revalidatePath('/orders');
+        revalidatePath('/');
+        return { success: true, count: orderIds.length };
+    } catch (error) {
+        console.error('Bulk assign error:', error);
+        return { error: 'Failed to assign inspector' };
+    }
+}
+

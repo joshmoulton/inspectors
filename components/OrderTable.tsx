@@ -8,6 +8,7 @@ import { updateOrderStatus } from '@/lib/actions';
 import { toast } from 'sonner';
 import Pagination from './Pagination';
 import EmptyState from './EmptyState';
+import BulkActionBar from './BulkActionBar';
 
 interface Order {
     id: string;
@@ -68,6 +69,7 @@ export default function OrderTable({
     const [currentPage, setCurrentPage] = useState(initialPage);
     const [sortField, setSortField] = useState(initialSort);
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>(initialDir);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     const router = useRouter();
     const pathname = usePathname();
@@ -166,6 +168,7 @@ export default function OrderTable({
     function handleStatusChange(status: string) {
         setStatusFilter(status);
         setCurrentPage(1);
+        setSelectedIds(new Set());
         updateUrl({ status, page: 1 });
     }
 
@@ -178,7 +181,26 @@ export default function OrderTable({
 
     function handlePageChange(page: number) {
         setCurrentPage(page);
+        setSelectedIds(new Set());
         updateUrl({ page });
+    }
+
+    const allSelected = orders.length > 0 && orders.every(o => selectedIds.has(o.id));
+
+    function toggleSelectAll() {
+        if (allSelected) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(orders.map(o => o.id)));
+        }
+    }
+
+    function toggleSelect(id: string) {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
     }
 
     return (
@@ -234,6 +256,14 @@ export default function OrderTable({
                             <table className="data-table">
                                 <thead>
                                     <tr>
+                                        <th style={{ width: 40, textAlign: 'center' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={allSelected}
+                                                onChange={toggleSelectAll}
+                                                style={{ cursor: 'pointer', accentColor: 'var(--brand-primary)' }}
+                                            />
+                                        </th>
                                         <th onClick={() => handleSort('orderNumber')} style={{ cursor: 'pointer' }}>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                                 Order # <ArrowUpDown size={12} />
@@ -260,7 +290,15 @@ export default function OrderTable({
                                 </thead>
                                 <tbody>
                                     {orders.map((order) => (
-                                        <tr key={order.id}>
+                                        <tr key={order.id} style={{ background: selectedIds.has(order.id) ? 'rgba(99, 102, 241, 0.04)' : undefined }}>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedIds.has(order.id)}
+                                                    onChange={() => toggleSelect(order.id)}
+                                                    style={{ cursor: 'pointer', accentColor: 'var(--brand-primary)' }}
+                                                />
+                                            </td>
                                             <td style={{ fontWeight: 700, color: 'var(--brand-primary-light)' }}>
                                                 <Link href={`/orders/${order.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{order.orderNumber}</Link>
                                             </td>
@@ -334,6 +372,13 @@ export default function OrderTable({
                     />
                 )}
             </div>
+
+            <BulkActionBar
+                selectedIds={selectedIds}
+                onClearSelection={() => setSelectedIds(new Set())}
+                inspectors={inspectors}
+                orders={orders}
+            />
         </>
     );
 }

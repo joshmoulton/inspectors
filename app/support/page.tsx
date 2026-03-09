@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Headphones, Mail, Phone, Clock, ChevronDown, MessageSquare, HelpCircle, Book, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -13,8 +14,17 @@ const faqItems = [
     { question: 'Can I export order data?', answer: 'Yes, go to the Orders page and click "Export CSV" to download all orders. You can also generate reports from the Reports & Analytics page.' },
 ];
 
+const quickLinks = [
+    { label: 'Getting Started Guide', href: '/resources', external: false },
+    { label: 'API Documentation', href: '#faq', external: false },
+    { label: 'Release Notes', href: '#faq', external: false },
+    { label: 'System Status', href: 'https://status.powerade.io', external: true },
+];
+
 export default function SupportPage() {
     const [openFaq, setOpenFaq] = useState<number | null>(null);
+    const router = useRouter();
+    const faqRef = useRef<HTMLDivElement>(null);
 
     function handleSubmitTicket(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -34,7 +44,7 @@ export default function SupportPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
                 {/* FAQ Section */}
                 <div>
-                    <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <h2 ref={faqRef} style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                         <HelpCircle size={18} /> Frequently Asked Questions
                     </h2>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -129,9 +139,21 @@ export default function SupportPage() {
                             <Book size={18} /> Quick Links
                         </h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {['Getting Started Guide', 'API Documentation', 'Release Notes', 'System Status'].map((label) => (
-                                <button key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s', textAlign: 'left', width: '100%' }}>
-                                    {label}
+                            {quickLinks.map((link) => (
+                                <button
+                                    key={link.label}
+                                    onClick={() => {
+                                        if (link.external) {
+                                            window.open(link.href, '_blank', 'noopener,noreferrer');
+                                        } else if (link.href === '#faq') {
+                                            faqRef.current?.scrollIntoView({ behavior: 'smooth' });
+                                        } else {
+                                            router.push(link.href);
+                                        }
+                                    }}
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s', textAlign: 'left', width: '100%' }}
+                                >
+                                    {link.label}
                                     <ExternalLink size={14} style={{ color: 'var(--text-tertiary)' }} />
                                 </button>
                             ))}

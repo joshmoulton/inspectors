@@ -3,6 +3,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 import { auth } from "@/auth";
 import { Toaster } from 'sonner';
+import KeyboardShortcuts from '@/components/KeyboardShortcuts';
 import prisma from '@/lib/prisma';
 
 export const viewport: Viewport = {
@@ -39,6 +40,7 @@ export default async function RootLayout({
             {children}
           </main>
         </div>
+        {session && <KeyboardShortcuts />}
         <Toaster theme="dark" position="bottom-right" className="powerade-toaster" />
       </body>
     </html>
