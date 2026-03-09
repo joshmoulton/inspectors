@@ -1,8 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings, Bell, Database, Globe, Save } from 'lucide-react';
+import { Settings, Bell, Database, Globe, Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import Papa from 'papaparse';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { clearTestData } from '@/lib/actions';
 
 export default function UtilitiesPage() {
     const [settings, setSettings] = useState({
@@ -141,17 +144,97 @@ export default function UtilitiesPage() {
                 {/* Data Management */}
                 <div className="settings-section">
                     <h2 className="settings-section-title"><Database size={18} /> Data Management</h2>
-                    <div className="card" style={{ padding: 24 }}>
-                        <div style={{ display: 'flex', gap: 12 }}>
-                            <button type="button" className="btn btn-secondary" onClick={() => toast.success('Export started. Check your email for the download link.')}>Export All Data</button>
-                            <button type="button" className="btn btn-danger" onClick={() => toast.error('This action is not available in the current environment.')}>Clear Test Data</button>
-                        </div>
-                        <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 12 }}>
-                            Export creates a ZIP archive of all orders, clients, users, and history. Clear test data removes all non-production records.
-                        </p>
-                    </div>
+                    <DataManagement />
                 </div>
             </form>
         </div>
+    );
+}
+
+function DataManagement() {
+    const [exporting, setExporting] = useState(false);
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+    async function handleExport() {
+        setExporting(true);
+        try {
+            const res = await fetch('/api/export');
+            if (!res.ok) throw new Error('Export failed');
+            const data = await res.json();
+
+            const rows = data.orders.map((o: any) => ({
+                OrderNumber: o.orderNumber,
+                Type: o.type,
+                Status: o.status,
+                WorkCode: o.workCode || '',
+                Address1: o.address1 || '',
+                Address2: o.address2 || '',
+                City: o.city || '',
+                State: o.state || '',
+                Zip: o.zip || '',
+                County: o.county || '',
+                Client: o.client?.name || '',
+                ClientCode: o.client?.code || '',
+                Inspector: o.inspector ? `${o.inspector.firstName} ${o.inspector.lastName}` : '',
+                DueDate: o.dueDate || '',
+                OrderedDate: o.orderedDate || '',
+                CompletedDate: o.completedDate || '',
+                ClientPay: o.clientPay || 0,
+                InspectorPay: o.inspectorPay || 0,
+                LoanNumber: o.loanNumber || '',
+                MortgageCompany: o.mortgageCompany || '',
+            }));
+
+            const csv = Papa.unparse(rows);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `powerade_export_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast.success(`Exported ${data.total.toLocaleString()} orders as CSV`);
+        } catch {
+            toast.error('Failed to export data');
+        } finally {
+            setExporting(false);
+        }
+    }
+
+    async function handleClear() {
+        const result = await clearTestData();
+        setShowClearConfirm(false);
+        if (result.success) {
+            toast.success('All test data has been cleared');
+        } else {
+            toast.error(result.error || 'Failed to clear data');
+        }
+    }
+
+    return (
+        <>
+            <div className="card" style={{ padding: 24 }}>
+                <div style={{ display: 'flex', gap: 12 }}>
+                    <button type="button" className="btn btn-secondary" onClick={handleExport} disabled={exporting}>
+                        {exporting ? <><Loader2 size={14} className="spin" /> Exporting...</> : 'Export All Data'}
+                    </button>
+                    <button type="button" className="btn btn-danger" onClick={() => setShowClearConfirm(true)}>
+                        Clear Test Data
+                    </button>
+                </div>
+                <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 12 }}>
+                    Export downloads all orders as CSV. Clear test data removes all orders, comments, and history (admin only).
+                </p>
+            </div>
+            <ConfirmDialog
+                isOpen={showClearConfirm}
+                title="Clear All Test Data"
+                description="This will permanently delete ALL orders, comments, history entries, and attachments. This action cannot be undone. Are you absolutely sure?"
+                confirmLabel="Delete Everything"
+                variant="danger"
+                onConfirm={handleClear}
+                onCancel={() => setShowClearConfirm(false)}
+            />
+        </>
     );
 }
