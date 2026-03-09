@@ -157,7 +157,10 @@ export async function POST(request: NextRequest) {
       const rowIndex = batchIndex * 100 + i;
 
       try {
-        const orderNumber = row.ID?.trim();
+        // Try multiple possible key names for ID (handles BOM, quotes, whitespace)
+        const rawId = row.ID || row['\uFEFFID'] || row["'ID"] || row['id'] ||
+          Object.entries(row).find(([k]) => k.replace(/^\W+/, '').toUpperCase() === 'ID')?.[1];
+        const orderNumber = rawId?.trim();
         if (!orderNumber) {
           errors.push({ row: rowIndex, id: 'unknown', message: 'Missing ID field' });
           continue;

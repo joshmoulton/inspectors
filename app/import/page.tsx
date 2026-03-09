@@ -104,6 +104,7 @@ export default function ImportPage() {
       Papa.parse<Record<string, string>>(file, {
         header: true,
         skipEmptyLines: true,
+        transformHeader: (header: string) => header.replace(/^\uFEFF/, '').replace(/^['"\s]+|['"\s]+$/g, ''),
         complete: (results) => resolve(results.data),
         error: (err: Error) => reject(err),
       });
