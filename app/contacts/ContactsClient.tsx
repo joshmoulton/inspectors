@@ -156,6 +156,7 @@ export default function ContactsClient({ initialContacts }: { initialContacts: C
             {/* Delete Confirmation */}
             {deleteTarget && (
                 <ConfirmDialog
+                    isOpen={true}
                     title="Delete Contact"
                     description={`Are you sure you want to delete ${deleteTarget.firstName} ${deleteTarget.lastName}? This action cannot be undone.`}
                     confirmLabel="Delete"

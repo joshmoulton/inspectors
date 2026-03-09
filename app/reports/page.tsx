@@ -1,131 +1,112 @@
 import prisma from '@/lib/prisma';
-import { BarChart3, TrendingUp, TrendingDown, FileText, Download, Calendar } from 'lucide-react';
+import { Download, Calendar } from 'lucide-react';
+import ReportsClient from './ReportsClient';
 
 export default async function ReportsPage() {
     let orderStats: any[] = [];
     let clientStats: any[] = [];
+    let monthlyData: { month: string; count: number }[] = [];
+    let inspectorStats: any[] = [];
+    let avgTurnaround = 0;
+    let approvalRate = 0;
+    let totalRevenue = 0;
+    let inspectorCoverage = 0;
+
     try {
-        [orderStats, clientStats] = await Promise.all([
-            prisma.workOrder.groupBy({
-                by: ['status'],
-                _count: true,
-            }),
+        const [stats, clients, allInspectors, completedOrders, paidOrders] = await Promise.all([
+            prisma.workOrder.groupBy({ by: ['status'], _count: true }),
             prisma.client.findMany({
-                include: {
-                    _count: {
-                        select: { orders: true }
-                    }
-                },
+                include: { _count: { select: { orders: true } } },
                 orderBy: { orders: { _count: 'desc' } },
-                take: 5
-            })
+                take: 10,
+            }),
+            prisma.user.findMany({
+                where: { role: 'inspector' },
+                include: {
+                    assignedOrders: {
+                        select: { id: true, status: true },
+                    },
+                },
+            }),
+            prisma.workOrder.findMany({
+                where: { completedDate: { not: null }, orderedDate: { not: null } },
+                select: { orderedDate: true, completedDate: true },
+                take: 1000,
+                orderBy: { completedDate: 'desc' },
+            }),
+            prisma.workOrder.aggregate({
+                where: { status: 'Paid' },
+                _sum: { clientPay: true },
+            }),
         ]);
-    } catch {
-        // Fallback to empty data on DB error
+
+        orderStats = stats;
+        clientStats = clients;
+        totalRevenue = paidOrders._sum.clientPay || 0;
+
+        // Avg turnaround (days between ordered and completed)
+        if (completedOrders.length > 0) {
+            const totalDays = completedOrders.reduce((sum, o) => {
+                const diff = (new Date(o.completedDate!).getTime() - new Date(o.orderedDate!).getTime()) / (1000 * 60 * 60 * 24);
+                return sum + Math.max(0, diff);
+            }, 0);
+            avgTurnaround = Math.round((totalDays / completedOrders.length) * 10) / 10;
+        }
+
+        // Approval rate
+        const totalCompleted = stats.filter(s => s.status.includes('Completed')).reduce((a, s) => a + s._count, 0);
+        const approved = stats.find(s => s.status === 'Completed Approved')?._count || 0;
+        approvalRate = totalCompleted > 0 ? Math.round((approved / totalCompleted) * 1000) / 10 : 0;
+
+        // Inspector coverage
+        const activeInspectors = allInspectors.filter(i => i.assignedOrders.length > 0).length;
+        inspectorCoverage = allInspectors.length > 0 ? Math.round((activeInspectors / allInspectors.length) * 100) : 0;
+
+        // Inspector performance stats
+        inspectorStats = allInspectors.map(i => ({
+            name: `${i.firstName} ${i.lastName}`,
+            total: i.assignedOrders.length,
+            open: i.assignedOrders.filter(o => o.status === 'Open').length,
+            completed: i.assignedOrders.filter(o => o.status.includes('Completed')).length,
+        })).sort((a, b) => b.total - a.total).slice(0, 10);
+
+        // Monthly orders (last 12 months)
+        const twelveMonthsAgo = new Date();
+        twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+        const monthlyOrders = await prisma.workOrder.findMany({
+            where: { createdAt: { gte: twelveMonthsAgo } },
+            select: { createdAt: true },
+        });
+        const monthBuckets: Record<string, number> = {};
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            const key = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+            monthBuckets[key] = 0;
+        }
+        for (const o of monthlyOrders) {
+            const key = new Date(o.createdAt).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+            if (key in monthBuckets) monthBuckets[key]++;
+        }
+        monthlyData = Object.entries(monthBuckets).map(([month, count]) => ({ month, count }));
+
+    } catch (e) {
+        console.error('Reports error:', e);
     }
 
     const totalOrders = orderStats.reduce((acc: number, s: { _count: number }) => acc + s._count, 0);
 
-    function getStatusColor(status: string) {
-        const colors: Record<string, string> = {
-            'Open': 'var(--brand-primary-light)',
-            'Unassigned': 'var(--status-warning)',
-            'Completed Pending Approval': 'var(--status-purple)',
-            'Completed Approved': 'var(--status-success)',
-            'Submitted to Client': '#06b6d4',
-            'Paid': '#14b8a6',
-        };
-        return colors[status] || 'var(--text-tertiary)';
-    }
-
     return (
-        <div className="page-container">
-            <header className="page-header">
-                <div>
-                    <h1 className="page-title">Reports & Analytics</h1>
-                    <p className="page-subtitle">Visual overview of operational performance and client volume.</p>
-                </div>
-                <div className="header-actions">
-                    <button className="btn btn-secondary"><Download size={16} /> Download PDF</button>
-                    <button className="btn btn-primary"><Calendar size={16} /> Schedule Report</button>
-                </div>
-            </header>
-
-            {/* Stats Row */}
-            <div className="stats-grid" style={{ marginBottom: 24 }}>
-                <ReportStat label="Avg Turnaround" value="2.4 Days" trend="+0.2" positive={false} />
-                <ReportStat label="Approval Rate" value="98.2%" trend="+1.5%" positive={true} />
-                <ReportStat label="Inspector Coverage" value="84%" trend="-2%" positive={false} />
-                <ReportStat label="Revenue (MTD)" value="$12,450" trend="+12%" positive={true} />
-            </div>
-
-            <div className="grid-2-col">
-                {/* Order Status Distribution */}
-                <div className="card" style={{ padding: 24 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <BarChart3 size={18} /> Order Status Distribution
-                    </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                        {orderStats.map((stat: { status: string; _count: number }) => (
-                            <div key={stat.status}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                                    <span style={{ fontWeight: 500 }}>{stat.status}</span>
-                                    <span style={{ fontFamily: 'monospace', color: 'var(--text-tertiary)' }}>{stat._count}</span>
-                                </div>
-                                <div style={{ height: 6, width: '100%', background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
-                                    <div style={{
-                                        height: '100%',
-                                        background: getStatusColor(stat.status),
-                                        borderRadius: 3,
-                                        width: `${totalOrders > 0 ? (stat._count / totalOrders) * 100 : 0}%`,
-                                        transition: 'width 0.5s ease'
-                                    }} />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Top Clients by Volume */}
-                <div className="card" style={{ padding: 24 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <FileText size={18} /> Top Clients by Volume
-                    </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {clientStats.map((client: any) => (
-                            <div key={client.id} style={{
-                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                padding: '12px 16px', borderRadius: 10,
-                                background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)'
-                            }}>
-                                <div>
-                                    <div style={{ fontSize: 13, fontWeight: 600 }}>{client.name}</div>
-                                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', fontFamily: 'monospace', marginTop: 2 }}>{client.code}</div>
-                                </div>
-                                <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--brand-primary-light)' }}>{client._count.orders}</div>
-                                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Orders</div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function ReportStat({ label, value, trend, positive }: { label: string; value: string; trend: string; positive: boolean }) {
-    return (
-        <div className="stat-card">
-            <div className="stat-content" style={{ textAlign: 'center', width: '100%' }}>
-                <div style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 4 }}>{label}</div>
-                <div className="stat-value">{value}</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 4, fontSize: 11, fontWeight: 600, color: positive ? 'var(--status-success)' : 'var(--status-danger)' }}>
-                    {positive ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
-                    {trend}
-                </div>
-            </div>
-        </div>
+        <ReportsClient
+            orderStats={orderStats}
+            clientStats={clientStats}
+            inspectorStats={inspectorStats}
+            monthlyData={monthlyData}
+            totalOrders={totalOrders}
+            avgTurnaround={avgTurnaround}
+            approvalRate={approvalRate}
+            inspectorCoverage={inspectorCoverage}
+            totalRevenue={totalRevenue}
+        />
     );
 }

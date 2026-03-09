@@ -1,177 +1,276 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useRef } from 'react';
+import { Upload, X, Camera, Loader2, ZoomIn } from 'lucide-react';
 import { uploadPhotos } from '@/lib/actions';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { Camera, Upload, X } from 'lucide-react';
 
-export default function PhotoUpload({ orderId }: { orderId: string }) {
-    const [isDragging, setIsDragging] = useState(false);
+interface PhotoUploadProps {
+    orderId: string;
+}
+
+export default function PhotoUpload({ orderId }: PhotoUploadProps) {
     const [files, setFiles] = useState<File[]>([]);
-    const [isUploading, setIsUploading] = useState(false);
+    const [previews, setPreviews] = useState<string[]>([]);
+    const [uploading, setUploading] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [dragActive, setDragActive] = useState(false);
+    const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
 
-    function handleDragOver(e: React.DragEvent) {
-        e.preventDefault();
-        setIsDragging(true);
+    function handleFiles(newFiles: File[]) {
+        const imageFiles = newFiles.filter(f => f.type.startsWith('image/'));
+        if (imageFiles.length !== newFiles.length) {
+            toast.error('Only image files are accepted');
+        }
+        if (imageFiles.length === 0) return;
+
+        setFiles(prev => [...prev, ...imageFiles]);
+        for (const file of imageFiles) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setPreviews(prev => [...prev, e.target?.result as string]);
+            };
+            reader.readAsDataURL(file);
+        }
     }
 
-    function handleDragLeave() {
-        setIsDragging(false);
+    function handleDrop(e: React.DragEvent) {
+        e.preventDefault();
+        setDragActive(false);
+        const droppedFiles = Array.from(e.dataTransfer.files);
+        handleFiles(droppedFiles);
     }
 
-    const handleDrop = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(false);
-        if (e.dataTransfer.files) {
-            const droppedFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-            setFiles(prev => [...prev, ...droppedFiles]);
-        }
-    }, []);
+    function removeFile(index: number) {
+        setFiles(prev => prev.filter((_, i) => i !== index));
+        setPreviews(prev => prev.filter((_, i) => i !== index));
+    }
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const selected = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/'));
-            setFiles(prev => [...prev, ...selected]);
-        }
-    };
-
-    const handleUpload = async () => {
-        if (files.length === 0 || isUploading) return;
-        setIsUploading(true);
+    async function handleUpload() {
+        if (files.length === 0) return;
+        setUploading(true);
+        setProgress(0);
 
         const formData = new FormData();
         files.forEach(file => formData.append('photos', file));
 
+        const interval = setInterval(() => {
+            setProgress(prev => Math.min(prev + 15, 90));
+        }, 300);
+
         try {
             const result = await uploadPhotos(orderId, formData);
+            clearInterval(interval);
+            setProgress(100);
+
             if (result.success) {
+                toast.success(`${result.count} photo${result.count !== 1 ? 's' : ''} uploaded successfully`);
                 setFiles([]);
-                toast.success(`Successfully uploaded ${result.count || files.length} photos`);
-                router.push(`/orders/${orderId}#photos`);
+                setPreviews([]);
                 router.refresh();
             } else {
                 toast.error(result.error || 'Upload failed');
             }
-        } catch (error) {
-            console.error("Upload error:", error);
-            toast.error('An unexpected error occurred during upload.');
+        } catch {
+            clearInterval(interval);
+            toast.error('Failed to upload photos');
         } finally {
-            setIsUploading(false);
+            setUploading(false);
+            setProgress(0);
         }
-    };
+    }
+
+    const totalSize = files.reduce((sum, f) => sum + f.size, 0);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            {/* Drop Zone */}
-            <div
-                className="card photo-drop-zone"
-                style={{
-                    border: isDragging ? '2px dashed var(--brand-primary-light)' : '2px dashed var(--border-default)',
-                    background: isDragging ? 'rgba(99, 102, 241, 0.05)' : 'var(--bg-surface)',
-                    transition: 'all 0.2s'
-                }}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-            >
-                <div style={{
-                    width: 64, height: 64, borderRadius: 16,
-                    background: 'rgba(99, 102, 241, 0.08)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    margin: '0 auto 20px', color: 'var(--brand-primary-light)'
-                }}>
-                    <Camera size={28} />
-                </div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Upload Inspection Photos</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-tertiary)', maxWidth: 320, margin: '0 auto 24px', lineHeight: 1.5 }}>
-                    Drag and drop your property photos here, or click to browse files.
-                </p>
-                <input
-                    type="file"
-                    id="photo-input"
-                    multiple
-                    style={{ display: 'none' }}
-                    onChange={handleFileSelect}
-                    accept="image/*"
-                    disabled={isUploading}
-                />
-                <label htmlFor="photo-input" className="btn btn-primary" style={{ cursor: isUploading ? 'not-allowed' : 'pointer', opacity: isUploading ? 0.5 : 1 }}>
-                    <Upload size={14} /> {isUploading ? 'Processing...' : 'Select Photos'}
-                </label>
+        <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Camera size={18} style={{ color: 'var(--brand-primary-light)' }} /> Upload Inspection Photos
+                </h3>
+                {files.length > 0 && (
+                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                        {files.length} file{files.length !== 1 ? 's' : ''} ({(totalSize / (1024 * 1024)).toFixed(1)} MB)
+                    </span>
+                )}
             </div>
 
-            {/* Photo Grid */}
-            {files.length > 0 && (
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                    gap: 12
-                }}>
-                    {files.map((file: File, i: number) => (
-                        <div key={i} style={{
-                            position: 'relative', aspectRatio: '1', borderRadius: 'var(--radius-md)',
-                            overflow: 'hidden', background: 'rgba(255,255,255,0.03)',
-                            border: '1px solid var(--border-subtle)'
+            {/* Drop Zone */}
+            <div
+                onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+                onDragLeave={() => setDragActive(false)}
+                onDrop={handleDrop}
+                onClick={() => inputRef.current?.click()}
+                style={{
+                    border: `2px dashed ${dragActive ? 'var(--brand-primary)' : 'var(--border-default)'}`,
+                    borderRadius: 12, padding: files.length > 0 ? 20 : 48,
+                    textAlign: 'center', cursor: 'pointer',
+                    background: dragActive ? 'rgba(99, 102, 241, 0.06)' : 'rgba(255, 255, 255, 0.02)',
+                    transition: 'all 200ms ease',
+                }}
+            >
+                <input
+                    ref={inputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => handleFiles(Array.from(e.target.files || []))}
+                    style={{ display: 'none' }}
+                />
+                {files.length === 0 ? (
+                    <>
+                        <div style={{
+                            width: 56, height: 56, borderRadius: 14,
+                            background: 'rgba(99, 102, 241, 0.1)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            margin: '0 auto 16px', color: 'var(--brand-primary-light)',
                         }}>
-                            <img
-                                src={URL.createObjectURL(file)}
-                                alt="preview"
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
+                            <Upload size={24} />
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
+                            Drag & drop photos here
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                            or click to browse (JPEG, PNG, HEIC)
+                        </div>
+                    </>
+                ) : (
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
+                        <Upload size={14} /> Click or drop to add more photos
+                    </div>
+                )}
+            </div>
+
+            {/* Preview Grid */}
+            {previews.length > 0 && (
+                <div style={{
+                    display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                    gap: 12, marginTop: 16,
+                }}>
+                    {previews.map((preview, i) => (
+                        <div key={i} style={{
+                            position: 'relative', borderRadius: 10, overflow: 'hidden',
+                            border: '1px solid var(--border-subtle)',
+                        }}>
+                            <div style={{ aspectRatio: '1', overflow: 'hidden' }}>
+                                <img src={preview} alt={files[i]?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </div>
+                            <div style={{
+                                position: 'absolute', inset: 0, background: 'linear-gradient(transparent 50%, rgba(0,0,0,0.7))',
+                                display: 'flex', alignItems: 'flex-end', padding: 8,
+                            }}>
+                                <span style={{ fontSize: 10, color: 'white', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                                    {files[i]?.name}
+                                </span>
+                            </div>
                             <button
-                                onClick={() => setFiles((prev: File[]) => prev.filter((_: File, idx: number) => idx !== i))}
-                                disabled={isUploading}
+                                onClick={(e) => { e.stopPropagation(); removeFile(i); }}
                                 style={{
                                     position: 'absolute', top: 6, right: 6,
                                     width: 24, height: 24, borderRadius: '50%',
-                                    background: 'rgba(0,0,0,0.7)', border: 'none',
+                                    background: 'rgba(0,0,0,0.6)', border: 'none',
                                     color: 'white', cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 }}
                             >
-                                <X size={12} />
+                                <X size={14} />
+                            </button>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
+                                style={{
+                                    position: 'absolute', top: 6, left: 6,
+                                    width: 24, height: 24, borderRadius: '50%',
+                                    background: 'rgba(0,0,0,0.6)', border: 'none',
+                                    color: 'white', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}
+                            >
+                                <ZoomIn size={12} />
                             </button>
                             <div style={{
-                                position: 'absolute', bottom: 4, right: 4,
-                                padding: '2px 6px', borderRadius: 4,
-                                background: 'rgba(0,0,0,0.75)', fontSize: 9,
-                                fontFamily: 'monospace', color: 'rgba(255,255,255,0.5)'
+                                position: 'absolute', bottom: 6, right: 6,
+                                fontSize: 9, fontFamily: 'monospace', color: 'rgba(255,255,255,0.7)',
+                                background: 'rgba(0,0,0,0.5)', padding: '2px 6px', borderRadius: 4,
                             }}>
-                                {(file.size / 1024).toFixed(0)}KB
+                                {(files[i]?.size / 1024).toFixed(0)}KB
                             </div>
                         </div>
                     ))}
-                    {!isUploading && (
-                        <button
-                            onClick={() => document.getElementById('photo-input')?.click()}
-                            style={{
-                                aspectRatio: '1', display: 'flex', flexDirection: 'column',
-                                alignItems: 'center', justifyContent: 'center',
-                                borderRadius: 'var(--radius-md)',
-                                border: '1px dashed var(--border-default)',
-                                background: 'transparent', cursor: 'pointer',
-                                color: 'var(--text-tertiary)', transition: 'all 0.15s'
-                            }}
-                        >
-                            <span style={{ fontSize: 24, marginBottom: 4 }}>+</span>
-                            <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>Add More</span>
-                        </button>
-                    )}
+                </div>
+            )}
+
+            {/* Progress Bar */}
+            {uploading && (
+                <div style={{ marginTop: 16 }}>
+                    <div style={{
+                        height: 4, width: '100%', background: 'rgba(255,255,255,0.06)',
+                        borderRadius: 2, overflow: 'hidden',
+                    }}>
+                        <div style={{
+                            height: '100%', background: 'var(--brand-primary)',
+                            borderRadius: 2, width: `${progress}%`,
+                            transition: 'width 300ms ease',
+                        }} />
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4, textAlign: 'center' }}>
+                        Uploading... {progress}%
+                    </div>
                 </div>
             )}
 
             {/* Upload Button */}
             {files.length > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+                    <button
+                        className="btn btn-secondary"
+                        onClick={() => { setFiles([]); setPreviews([]); }}
+                        disabled={uploading}
+                    >
+                        Clear All
+                    </button>
                     <button
                         className="btn btn-primary"
                         onClick={handleUpload}
-                        disabled={isUploading}
+                        disabled={uploading}
                     >
-                        <Upload size={14} /> {isUploading ? 'Uploading...' : `Upload ${files.length} Photos`}
+                        {uploading ? (
+                            <><Loader2 size={14} className="spin" /> Uploading...</>
+                        ) : (
+                            <><Upload size={14} /> Upload {files.length} Photo{files.length !== 1 ? 's' : ''}</>
+                        )}
                     </button>
+                </div>
+            )}
+
+            {/* Lightbox */}
+            {lightboxIndex !== null && (
+                <div
+                    className="modal-overlay"
+                    onClick={() => setLightboxIndex(null)}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                    <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: '90vw', maxHeight: '90vh', position: 'relative' }}>
+                        <img
+                            src={previews[lightboxIndex]}
+                            alt={files[lightboxIndex]?.name}
+                            style={{ maxWidth: '100%', maxHeight: '85vh', borderRadius: 12 }}
+                        />
+                        <button
+                            onClick={() => setLightboxIndex(null)}
+                            style={{
+                                position: 'absolute', top: -12, right: -12,
+                                width: 32, height: 32, borderRadius: '50%',
+                                background: 'var(--bg-surface)', border: '1px solid var(--border-default)',
+                                color: 'var(--text-primary)', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
