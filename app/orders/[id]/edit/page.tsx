@@ -105,7 +105,7 @@ export default async function EditOrderPage({ params }: { params: { id: string }
                         </div>
                         <div className="form-field">
                             <label className="form-label">Zip <span className="required">*</span></label>
-                            <input type="text" name="zip" defaultValue={order.zip || ''} className="form-control" required />
+                            <input type="text" name="zip" defaultValue={order.zip || ''} className="form-control" required pattern="[0-9]{5}(-[0-9]{4})?" title="Enter a valid ZIP code" />
                         </div>
                     </div>
                 </section>
@@ -132,11 +132,11 @@ export default async function EditOrderPage({ params }: { params: { id: string }
                     <div className="form-row">
                         <div className="form-field">
                             <label className="form-label">Inspector Pay ($)</label>
-                            <input type="number" name="inspectorPay" step="0.01" defaultValue={order.inspectorPay || 0} className="form-control" />
+                            <input type="number" name="inspectorPay" step="0.01" min="0" defaultValue={order.inspectorPay || 0} className="form-control" />
                         </div>
                         <div className="form-field">
                             <label className="form-label">Client Pay ($)</label>
-                            <input type="number" name="clientPay" step="0.01" defaultValue={order.clientPay || 0} className="form-control" />
+                            <input type="number" name="clientPay" step="0.01" min="0" defaultValue={order.clientPay || 0} className="form-control" />
                         </div>
                     </div>
                 </section>

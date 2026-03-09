@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'next/navigation';
 import DropdownMenu from './DropdownMenu';
 import NotificationBell from './NotificationBell';
+import ThemeToggle from './ThemeToggle';
 
 const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, href: '/', badge: null },
@@ -60,7 +61,7 @@ export function Sidebar({ user, openOrdersCount = 0 }: { user: any, openOrdersCo
     );
 
     const userDropdownItems = [
-        { label: 'Profile', icon: <User size={15} />, onClick: () => {} },
+        { label: 'Profile', icon: <User size={15} />, onClick: () => { router.push('/profile'); } },
         { label: 'Settings', icon: <Settings size={15} />, onClick: () => { window.location.href = '/utilities'; } },
         { divider: true, label: '' },
         { label: 'Sign Out', icon: <LogOut size={15} />, variant: 'danger' as const, onClick: () => signOut() },
@@ -84,7 +85,12 @@ export function Sidebar({ user, openOrdersCount = 0 }: { user: any, openOrdersCo
                 <div className="sidebar-header">
                     <div className="sidebar-logo">P</div>
                     <span className="sidebar-title">Powerade</span>
-                    {!collapsed && <div style={{ marginLeft: 'auto' }}><NotificationBell /></div>}
+                    {!collapsed && (
+                        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <ThemeToggle />
+                            <NotificationBell />
+                        </div>
+                    )}
                 </div>
                 <div className="sidebar-search">
                     <div className="sidebar-search-wrapper">
@@ -92,6 +98,7 @@ export function Sidebar({ user, openOrdersCount = 0 }: { user: any, openOrdersCo
                         <input
                             type="text"
                             placeholder="Search orders..."
+                            aria-label="Search orders"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyDown={(e) => {

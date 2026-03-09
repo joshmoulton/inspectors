@@ -2,7 +2,8 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { createClient } from '@/lib/mgmt-actions';
 import SubmitButton from '@/components/SubmitButton';
-import { Plus, Settings, Building2, ArrowRight } from 'lucide-react';
+import { Plus, ArrowRight } from 'lucide-react';
+import ClientsClient from './ClientsClient';
 
 export default async function ClientsPage() {
     let clients: any[] = [];
@@ -32,6 +33,14 @@ export default async function ClientsPage() {
         );
     }
 
+    const serializedClients = clients.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        code: c.code,
+        orderCount: c._count.orders,
+        loginCount: c._count.logins,
+    }));
+
     return (
         <div className="page-container">
             <header className="page-header">
@@ -42,52 +51,9 @@ export default async function ClientsPage() {
             </header>
 
             <div className="grid-sidebar-right">
-                {/* Left: Client List */}
+                {/* Left: Client List with search and settings */}
                 <div>
-                    <div className="card" style={{ overflow: 'hidden' }}>
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Client Name</th>
-                                    <th>Code</th>
-                                    <th style={{ textAlign: 'center' }}>Active Orders</th>
-                                    <th style={{ textAlign: 'center' }}>Logins</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {clients.map((client) => (
-                                    <tr key={client.id}>
-                                        <td style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <div style={{
-                                                width: 30, height: 30, borderRadius: 'var(--radius-sm)',
-                                                background: 'rgba(99, 102, 241, 0.1)',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                flexShrink: 0
-                                            }}>
-                                                <Building2 size={14} style={{ color: 'var(--brand-primary-light)' }} />
-                                            </div>
-                                            {client.name}
-                                        </td>
-                                        <td>
-                                            <span style={{
-                                                fontFamily: 'monospace', fontSize: 11,
-                                                padding: '2px 8px', background: 'rgba(255,255,255,0.06)',
-                                                borderRadius: 'var(--radius-sm)'
-                                            }}>{client.code}</span>
-                                        </td>
-                                        <td style={{ textAlign: 'center', fontFamily: 'monospace' }}>{client._count.orders}</td>
-                                        <td style={{ textAlign: 'center', fontFamily: 'monospace' }}>{client._count.logins}</td>
-                                        <td>
-                                            <button className="btn btn-secondary btn-sm">
-                                                <Settings size={12} /> Settings
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    <ClientsClient clients={serializedClients} />
                 </div>
 
                 {/* Right: Quick Add Client */}
@@ -97,11 +63,11 @@ export default async function ClientsPage() {
                         <form action={createClient} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 <label className="form-label">Client Name</label>
-                                <input type="text" name="name" className="form-control" placeholder="Altisource" required />
+                                <input type="text" name="name" className="form-control" placeholder="e.g. Altisource" required />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 <label className="form-label">Short Code</label>
-                                <input type="text" name="code" className="form-control" placeholder="ALT" required />
+                                <input type="text" name="code" className="form-control" placeholder="e.g. ALT" required />
                             </div>
                             <SubmitButton style={{ marginTop: 4 }}>
                                 <Plus size={14} /> Add Client

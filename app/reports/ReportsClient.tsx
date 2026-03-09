@@ -15,12 +15,13 @@ interface ReportsClientProps {
     orderStats: { status: string; _count: number }[];
     clientStats: any[];
     inspectorStats: { name: string; total: number; open: number; completed: number }[];
-    monthlyData: { month: string; count: number }[];
+    monthlyData: { month: string; count: number; revenue: number }[];
     totalOrders: number;
     avgTurnaround: number;
     approvalRate: number;
     inspectorCoverage: number;
     totalRevenue: number;
+    totalProfit: number;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -38,9 +39,9 @@ const PIE_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4
 
 export default function ReportsClient({
     orderStats, clientStats, inspectorStats, monthlyData,
-    totalOrders, avgTurnaround, approvalRate, inspectorCoverage, totalRevenue,
+    totalOrders, avgTurnaround, approvalRate, inspectorCoverage, totalRevenue, totalProfit,
 }: ReportsClientProps) {
-    const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'inspectors'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'inspectors' | 'financial'>('overview');
 
     function handleExportCSV() {
         const rows = [['Status', 'Count']];
@@ -112,7 +113,7 @@ export default function ReportsClient({
 
             {/* Tab bar */}
             <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: 'var(--bg-surface)', padding: 4, borderRadius: 10, width: 'fit-content' }}>
-                {(['overview', 'clients', 'inspectors'] as const).map(tab => (
+                {(['overview', 'clients', 'inspectors', 'financial'] as const).map(tab => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -285,6 +286,83 @@ export default function ReportsClient({
                         ))}
                     </div>
                 </div>
+            )}
+
+            {activeTab === 'financial' && (
+                <>
+                    {/* Revenue Summary Cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+                        <div className="card" style={{ padding: 24, textAlign: 'center' }}>
+                            <div style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 6 }}>Total Revenue</div>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--status-success)' }}>${totalRevenue.toLocaleString()}</div>
+                        </div>
+                        <div className="card" style={{ padding: 24, textAlign: 'center' }}>
+                            <div style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 6 }}>Total Profit</div>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: totalProfit >= 0 ? 'var(--status-success)' : 'var(--status-danger)' }}>${totalProfit.toLocaleString()}</div>
+                        </div>
+                        <div className="card" style={{ padding: 24, textAlign: 'center' }}>
+                            <div style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 6 }}>Avg Revenue / Order</div>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--brand-primary-light)' }}>
+                                ${totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : '0.00'}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Monthly Revenue Chart */}
+                    <div className="card" style={{ padding: 24 }}>
+                        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <DollarSign size={18} /> Monthly Revenue Trend
+                        </h3>
+                        <div style={{ width: '100%', height: 320 }}>
+                            <ResponsiveContainer>
+                                <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                    <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            borderRadius: '8px', fontSize: 13,
+                                        }}
+                                        itemStyle={{ color: '#fff' }}
+                                        formatter={(value: number) => [`$${value.toLocaleString()}`, 'Revenue']}
+                                    />
+                                    <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* Revenue per Month Table */}
+                    <div className="card" style={{ overflow: 'hidden', marginTop: 24 }}>
+                        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-subtle)' }}>
+                            <h3 style={{ fontSize: 15, fontWeight: 700 }}>Monthly Breakdown</h3>
+                        </div>
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th style={{ textAlign: 'right' }}>Orders</th>
+                                    <th style={{ textAlign: 'right' }}>Revenue</th>
+                                    <th style={{ textAlign: 'right' }}>Avg / Order</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {monthlyData.map(m => (
+                                    <tr key={m.month}>
+                                        <td style={{ fontWeight: 600 }}>{m.month}</td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{m.count}</td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--status-success)' }}>${m.revenue.toLocaleString()}</td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--text-tertiary)' }}>
+                                            ${m.count > 0 ? (m.revenue / m.count).toFixed(2) : '0.00'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
             )}
 
             {activeTab === 'inspectors' && (

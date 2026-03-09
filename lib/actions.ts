@@ -16,9 +16,13 @@ export async function createOrder(formData: FormData) {
     const zip = formData.get('zip') as string;
     const inspectorId = formData.get('inspectorId') as string || null;
     const dueDate = formData.get('dueDate') as string;
-    const inspectorPay = parseFloat(formData.get('inspectorPay') as string) || 0;
-    const clientPay = parseFloat(formData.get('clientPay') as string) || 0;
+    const inspectorPay = Math.max(0, parseFloat(formData.get('inspectorPay') as string) || 0);
+    const clientPay = Math.max(0, parseFloat(formData.get('clientPay') as string) || 0);
     const instructions = formData.get('instructions') as string;
+
+    if (!orderNumber?.trim() || !clientId?.trim() || !address1?.trim() || !city?.trim() || !state?.trim() || !zip?.trim()) {
+        throw new Error('Missing required fields');
+    }
 
     try {
         const order = await prisma.workOrder.create({
@@ -71,10 +75,14 @@ export async function updateOrder(id: string, formData: FormData) {
     const zip = formData.get('zip') as string;
     const inspectorId = formData.get('inspectorId') as string || null;
     const dueDate = formData.get('dueDate') as string;
-    const inspectorPay = parseFloat(formData.get('inspectorPay') as string) || 0;
-    const clientPay = parseFloat(formData.get('clientPay') as string) || 0;
+    const inspectorPay = Math.max(0, parseFloat(formData.get('inspectorPay') as string) || 0);
+    const clientPay = Math.max(0, parseFloat(formData.get('clientPay') as string) || 0);
     const instructions = formData.get('instructions') as string;
     const status = formData.get('status') as string;
+
+    if (!orderNumber?.trim() || !clientId?.trim() || !address1?.trim() || !city?.trim() || !state?.trim() || !zip?.trim()) {
+        throw new Error('Missing required fields');
+    }
 
     try {
         await prisma.workOrder.update({

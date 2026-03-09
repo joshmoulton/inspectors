@@ -5,11 +5,12 @@ import ReportsClient from './ReportsClient';
 export default async function ReportsPage() {
     let orderStats: any[] = [];
     let clientStats: any[] = [];
-    let monthlyData: { month: string; count: number }[] = [];
+    let monthlyData: { month: string; count: number; revenue: number }[] = [];
     let inspectorStats: any[] = [];
     let avgTurnaround = 0;
     let approvalRate = 0;
     let totalRevenue = 0;
+    let totalProfit = 0;
     let inspectorCoverage = 0;
 
     try {
@@ -70,25 +71,35 @@ export default async function ReportsPage() {
             completed: i.assignedOrders.filter(o => o.status.includes('Completed')).length,
         })).sort((a, b) => b.total - a.total).slice(0, 10);
 
-        // Monthly orders (last 12 months)
+        // Total profit
+        const profitData = await prisma.workOrder.aggregate({
+            where: { status: 'Paid' },
+            _sum: { inspectorPay: true },
+        });
+        totalProfit = totalRevenue - (profitData._sum.inspectorPay || 0);
+
+        // Monthly orders with revenue (last 12 months)
         const twelveMonthsAgo = new Date();
         twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
         const monthlyOrders = await prisma.workOrder.findMany({
             where: { createdAt: { gte: twelveMonthsAgo } },
-            select: { createdAt: true },
+            select: { createdAt: true, clientPay: true },
         });
-        const monthBuckets: Record<string, number> = {};
+        const monthBuckets: Record<string, { count: number; revenue: number }> = {};
         for (let i = 11; i >= 0; i--) {
             const d = new Date();
             d.setMonth(d.getMonth() - i);
             const key = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-            monthBuckets[key] = 0;
+            monthBuckets[key] = { count: 0, revenue: 0 };
         }
         for (const o of monthlyOrders) {
             const key = new Date(o.createdAt).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-            if (key in monthBuckets) monthBuckets[key]++;
+            if (key in monthBuckets) {
+                monthBuckets[key].count++;
+                monthBuckets[key].revenue += o.clientPay || 0;
+            }
         }
-        monthlyData = Object.entries(monthBuckets).map(([month, count]) => ({ month, count }));
+        monthlyData = Object.entries(monthBuckets).map(([month, data]) => ({ month, count: data.count, revenue: Math.round(data.revenue) }));
 
     } catch (e) {
         console.error('Reports error:', e);
@@ -107,6 +118,7 @@ export default async function ReportsPage() {
             approvalRate={approvalRate}
             inspectorCoverage={inspectorCoverage}
             totalRevenue={totalRevenue}
+            totalProfit={totalProfit}
         />
     );
 }

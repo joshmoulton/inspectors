@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import Pagination from './Pagination';
 import EmptyState from './EmptyState';
 import BulkActionBar from './BulkActionBar';
+import ConfirmDialog from './ConfirmDialog';
 
 interface Order {
     id: string;
@@ -216,6 +217,7 @@ export default function OrderTable({
                             className="form-control"
                             value={search}
                             onChange={(e) => handleSearchChange(e.target.value)}
+                            aria-label="Search orders"
                         />
                     </div>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
@@ -261,6 +263,7 @@ export default function OrderTable({
                                                 type="checkbox"
                                                 checked={allSelected}
                                                 onChange={toggleSelectAll}
+                                                aria-label="Select all orders"
                                                 style={{ cursor: 'pointer', accentColor: 'var(--brand-primary)' }}
                                             />
                                         </th>
@@ -296,6 +299,7 @@ export default function OrderTable({
                                                     type="checkbox"
                                                     checked={selectedIds.has(order.id)}
                                                     onChange={() => toggleSelect(order.id)}
+                                                    aria-label={`Select order ${order.orderNumber}`}
                                                     style={{ cursor: 'pointer', accentColor: 'var(--brand-primary)' }}
                                                 />
                                             </td>
@@ -385,10 +389,11 @@ export default function OrderTable({
 
 function QuickCompleteButton({ orderId }: { orderId: string }) {
     const [loading, setLoading] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
     const router = useRouter();
 
     async function handleComplete() {
-        if (!confirm('Mark this order as Completed Pending Approval?')) return;
+        setShowConfirm(false);
         setLoading(true);
         try {
             const result = await updateOrderStatus(orderId, 'Completed Pending Approval');
@@ -406,15 +411,26 @@ function QuickCompleteButton({ orderId }: { orderId: string }) {
     }
 
     return (
-        <button
-            className="btn btn-success btn-sm"
-            style={{ height: 28, padding: '0 8px' }}
-            onClick={handleComplete}
-            disabled={loading}
-            title="Mark Complete"
-        >
-            <CheckCircle size={13} />
-        </button>
+        <>
+            <button
+                className="btn btn-success btn-sm"
+                style={{ height: 28, padding: '0 8px' }}
+                onClick={() => setShowConfirm(true)}
+                disabled={loading}
+                title="Mark Complete"
+                aria-label="Mark order complete"
+            >
+                <CheckCircle size={13} />
+            </button>
+            <ConfirmDialog
+                isOpen={showConfirm}
+                onConfirm={handleComplete}
+                onCancel={() => setShowConfirm(false)}
+                title="Complete Order"
+                description="Mark this order as Completed Pending Approval?"
+                confirmLabel="Complete"
+            />
+        </>
     );
 }
 

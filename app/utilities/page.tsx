@@ -7,25 +7,43 @@ import Papa from 'papaparse';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { clearTestData } from '@/lib/actions';
 
+const DEFAULT_SETTINGS = {
+    companyName: 'Powerade Inspections',
+    timezone: 'America/New_York',
+    dateFormat: 'MM/DD/YYYY',
+    defaultType: 'Standard',
+    autoAssign: false,
+    autoApprove: false,
+    emailNotifications: true,
+    notificationEmail: 'admin@powerade.io',
+};
+
+function loadSettings() {
+    if (typeof window === 'undefined') return DEFAULT_SETTINGS;
+    try {
+        const saved = localStorage.getItem('powerade-settings');
+        return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_SETTINGS;
+    } catch { return DEFAULT_SETTINGS; }
+}
+
 export default function UtilitiesPage() {
-    const [settings, setSettings] = useState({
-        companyName: 'Powerade Inspections',
-        timezone: 'America/New_York',
-        dateFormat: 'MM/DD/YYYY',
-        defaultType: 'Standard',
-        autoAssign: false,
-        autoApprove: false,
-        emailNotifications: true,
-        notificationEmail: 'admin@powerade.io',
-    });
+    const [settings, setSettings] = useState(loadSettings);
+    const [dirty, setDirty] = useState(false);
 
     function handleSave(e: React.FormEvent) {
         e.preventDefault();
-        toast.success('Settings saved successfully');
+        try {
+            localStorage.setItem('powerade-settings', JSON.stringify(settings));
+            setDirty(false);
+            toast.success('Settings saved successfully');
+        } catch {
+            toast.error('Failed to save settings');
+        }
     }
 
     function updateSetting(key: string, value: any) {
-        setSettings(prev => ({ ...prev, [key]: value }));
+        setSettings((prev: typeof DEFAULT_SETTINGS) => ({ ...prev, [key]: value }));
+        setDirty(true);
     }
 
     return (
@@ -36,7 +54,9 @@ export default function UtilitiesPage() {
                     <p className="page-subtitle">Configure system preferences and manage application settings.</p>
                 </div>
                 <div className="header-actions">
-                    <button className="btn btn-primary" onClick={handleSave}><Save size={16} /> Save Changes</button>
+                    <button className={`btn ${dirty ? 'btn-primary' : 'btn-secondary'}`} onClick={handleSave} disabled={!dirty}>
+                        <Save size={16} /> {dirty ? 'Save Changes' : 'Saved'}
+                    </button>
                 </div>
             </header>
 

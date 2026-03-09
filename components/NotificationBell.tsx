@@ -22,8 +22,29 @@ export default function NotificationBell() {
 
     useEffect(() => {
         fetchNotifications();
-        const interval = setInterval(fetchNotifications, 60000); // Refresh every minute
-        return () => clearInterval(interval);
+
+        let interval: ReturnType<typeof setInterval>;
+
+        function startPolling() {
+            interval = setInterval(fetchNotifications, 60000);
+        }
+
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                clearInterval(interval);
+            } else {
+                fetchNotifications(); // Refresh immediately when tab becomes visible
+                startPolling();
+            }
+        }
+
+        startPolling();
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, []);
 
     useEffect(() => {

@@ -1,21 +1,42 @@
-import NextAuth from "next-auth";
-import { authConfig } from "./auth.config";
+import { auth } from './auth';
+import { NextResponse } from 'next/server';
 
-const { auth } = NextAuth(authConfig);
+// Routes that inspectors cannot access
+const RESTRICTED_FOR_INSPECTOR = ['/users', '/utilities', '/api/import/cleanup'];
+
+// Public routes that don't require auth
+const PUBLIC_ROUTES = ['/login', '/api/auth', '/client-portal', '/api/client-portal'];
 
 export default auth((req) => {
-    const isLoggedIn = !!req.auth;
-    const isLoginPage = req.nextUrl.pathname === "/login";
+    const { pathname } = req.nextUrl;
 
-    if (!isLoggedIn && !isLoginPage) {
-        return Response.redirect(new URL("/login", req.nextUrl));
+    // Allow public routes
+    if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
+        return NextResponse.next();
     }
 
-    if (isLoggedIn && isLoginPage) {
-        return Response.redirect(new URL("/", req.nextUrl));
+    // Allow static assets and Next.js internals
+    if (pathname.startsWith('/_next') || pathname.startsWith('/favicon') || pathname.includes('.')) {
+        return NextResponse.next();
     }
+
+    // Check authentication
+    if (!req.auth) {
+        const loginUrl = new URL('/login', req.url);
+        loginUrl.searchParams.set('callbackUrl', pathname);
+        return NextResponse.redirect(loginUrl);
+    }
+
+    const userRole = (req.auth.user as any)?.role || 'inspector';
+
+    // Restrict inspector access to admin routes
+    if (userRole === 'inspector' && RESTRICTED_FOR_INSPECTOR.some(route => pathname.startsWith(route))) {
+        return NextResponse.redirect(new URL('/orders', req.url));
+    }
+
+    return NextResponse.next();
 });
 
 export const config = {
-    matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+    matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };

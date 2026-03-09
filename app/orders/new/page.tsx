@@ -96,7 +96,7 @@ export default async function NewOrderPage() {
                         </div>
                         <div className="form-field">
                             <label className="form-label">Zip <span className="required">*</span></label>
-                            <input type="text" name="zip" className="form-control" placeholder="12345" required />
+                            <input type="text" name="zip" className="form-control" placeholder="12345" required pattern="[0-9]{5}(-[0-9]{4})?" title="Enter a valid ZIP code (e.g. 12345 or 12345-6789)" />
                         </div>
                     </div>
                 </section>
@@ -117,17 +117,17 @@ export default async function NewOrderPage() {
                         </div>
                         <div className="form-field">
                             <label className="form-label">Due Date <span className="required">*</span></label>
-                            <input type="date" name="dueDate" className="form-control" required defaultValue={new Date().toISOString().split('T')[0]} />
+                            <input type="date" name="dueDate" className="form-control" required defaultValue={new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]} />
                         </div>
                     </div>
                     <div className="form-row">
                         <div className="form-field">
                             <label className="form-label">Inspector Pay ($)</label>
-                            <input type="number" name="inspectorPay" step="0.01" className="form-control" placeholder="0.00" />
+                            <input type="number" name="inspectorPay" step="0.01" min="0" className="form-control" placeholder="0.00" />
                         </div>
                         <div className="form-field">
                             <label className="form-label">Client Pay ($)</label>
-                            <input type="number" name="clientPay" step="0.01" className="form-control" placeholder="0.00" />
+                            <input type="number" name="clientPay" step="0.01" min="0" className="form-control" placeholder="0.00" />
                         </div>
                     </div>
                 </section>
