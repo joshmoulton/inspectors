@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Tab {
@@ -16,6 +16,13 @@ interface OrderTabsProps {
 
 export default function OrderTabs({ tabs, children }: OrderTabsProps) {
     const [activeTab, setActiveTab] = useState(tabs[0].id);
+
+    useEffect(() => {
+        const hash = window.location.hash.replace('#', '');
+        if (hash && tabs.some(t => t.id === hash)) {
+            setActiveTab(hash);
+        }
+    }, [tabs]);
 
     return (
         <>

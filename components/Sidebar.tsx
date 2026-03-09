@@ -7,8 +7,9 @@ import { signOut } from 'next-auth/react';
 import {
     LayoutDashboard, ClipboardList, Upload, Users, Building2, BookUser,
     BarChart3, Map, Wrench, Settings, FileText, Headphones, LogOut,
-    PanelLeftClose, PanelLeft, Menu, X, User, ChevronDown
+    PanelLeftClose, PanelLeft, Menu, X, User, ChevronDown, Search
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import DropdownMenu from './DropdownMenu';
 
 const navItems = [
@@ -31,8 +32,10 @@ const navItems = [
 
 export function Sidebar({ user, openOrdersCount = 0 }: { user: any, openOrdersCount?: number }) {
     const pathname = usePathname();
+    const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const [collapsed, setCollapsed] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         const saved = localStorage.getItem('sidebar-collapsed');
@@ -80,6 +83,23 @@ export function Sidebar({ user, openOrdersCount = 0 }: { user: any, openOrdersCo
                 <div className="sidebar-header">
                     <div className="sidebar-logo">P</div>
                     <span className="sidebar-title">Powerade</span>
+                </div>
+                <div className="sidebar-search">
+                    <div className="sidebar-search-wrapper">
+                        <Search size={14} className="search-icon" />
+                        <input
+                            type="text"
+                            placeholder="Search orders..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && searchQuery.trim()) {
+                                    router.push(`/orders?q=${encodeURIComponent(searchQuery.trim())}`);
+                                    setSearchQuery('');
+                                }
+                            }}
+                        />
+                    </div>
                 </div>
                 <nav className="sidebar-nav">
                     {dynamicNavItems.map((item, i) => {

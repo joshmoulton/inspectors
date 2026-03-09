@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createUser } from '@/lib/mgmt-actions';
+import SubmitButton from '@/components/SubmitButton';
 import { UserPlus } from 'lucide-react';
 
 export default function NewUserPage() {
@@ -12,7 +13,7 @@ export default function NewUserPage() {
                 </div>
                 <div className="header-actions">
                     <Link href="/users" className="btn btn-secondary">Cancel</Link>
-                    <button type="submit" form="new-user-form" className="btn btn-primary">Create User</button>
+                    <SubmitButton form="new-user-form">Create User</SubmitButton>
                 </div>
             </header>
 
@@ -66,7 +67,7 @@ export default function NewUserPage() {
 
                     <div className="form-actions">
                         <Link href="/users" className="btn btn-secondary">Cancel</Link>
-                        <button type="submit" className="btn btn-primary">Create User</button>
+                        <SubmitButton>Create User</SubmitButton>
                     </div>
                 </section>
             </form>

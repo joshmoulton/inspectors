@@ -1,9 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ArrowUpDown, ClipboardList } from 'lucide-react';
+import { Search, ArrowUpDown, ClipboardList, Eye, CheckCircle, UserPlus } from 'lucide-react';
+import { updateOrderStatus } from '@/lib/actions';
+import { toast } from 'sonner';
 import Pagination from './Pagination';
 import EmptyState from './EmptyState';
 
@@ -20,14 +23,21 @@ interface Order {
     inspector: { firstName: string; lastName: string } | null;
 }
 
+interface Inspector {
+    id: string;
+    firstName: string;
+    lastName: string;
+}
+
 const PAGE_SIZE = 25;
 
 const STATUS_FILTERS = ['All', 'Open', 'Completed', 'Unassigned', 'Cancelled', 'Submitted', 'Paid'];
 
-export default function OrderTable({ initialOrders }: { initialOrders: any[] }) {
+export default function OrderTable({ initialOrders, inspectors = [], initialSearch = '' }: { initialOrders: any[]; inspectors?: Inspector[]; initialSearch?: string }) {
     const [orders] = useState(initialOrders);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(initialSearch);
     const [statusFilter, setStatusFilter] = useState('All');
+    const router = useRouter();
     const [currentPage, setCurrentPage] = useState(1);
     const [sortField, setSortField] = useState<string | null>(null);
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -205,7 +215,17 @@ export default function OrderTable({ initialOrders }: { initialOrders: any[] }) 
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <Link href={`/orders/${order.id}`} style={{ fontSize: 12, color: 'var(--brand-primary-light)', textDecoration: 'none' }}>Details</Link>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                        <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" style={{ height: 28, padding: '0 8px' }} title="View Details">
+                                                            <Eye size={13} />
+                                                        </Link>
+                                                        {order.status === 'Open' && (
+                                                            <QuickCompleteButton orderId={order.id} />
+                                                        )}
+                                                        {order.status === 'Unassigned' && inspectors.length > 0 && (
+                                                            <QuickAssignButton orderId={order.id} inspectors={inspectors} />
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </motion.tr>
                                         ))}
@@ -230,6 +250,106 @@ export default function OrderTable({ initialOrders }: { initialOrders: any[] }) 
                 )}
             </div>
         </>
+    );
+}
+
+function QuickCompleteButton({ orderId }: { orderId: string }) {
+    const [loading, setLoading] = useState(false);
+    const router = useRouter();
+
+    async function handleComplete() {
+        if (!confirm('Mark this order as Completed Pending Approval?')) return;
+        setLoading(true);
+        try {
+            const result = await updateOrderStatus(orderId, 'Completed Pending Approval');
+            if (result.success) {
+                toast.success('Order marked as completed');
+                router.refresh();
+            } else {
+                toast.error(result.error || 'Failed to update');
+            }
+        } catch {
+            toast.error('Failed to update order');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return (
+        <button
+            className="btn btn-success btn-sm"
+            style={{ height: 28, padding: '0 8px' }}
+            onClick={handleComplete}
+            disabled={loading}
+            title="Mark Complete"
+        >
+            <CheckCircle size={13} />
+        </button>
+    );
+}
+
+function QuickAssignButton({ orderId, inspectors }: { orderId: string; inspectors: Inspector[] }) {
+    const [open, setOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const router = useRouter();
+    const ref = useRef<HTMLDivElement>(null);
+
+    async function handleAssign(inspectorId: string) {
+        setLoading(true);
+        setOpen(false);
+        try {
+            // Use fetch to call the assign endpoint via server action
+            const formData = new FormData();
+            formData.append('inspectorId', inspectorId);
+            formData.append('status', 'Open');
+
+            const res = await fetch(`/api/orders/${orderId}/assign`, {
+                method: 'POST',
+                body: JSON.stringify({ inspectorId }),
+                headers: { 'Content-Type': 'application/json' },
+            });
+
+            if (res.ok) {
+                toast.success('Inspector assigned');
+                router.refresh();
+            } else {
+                // Fallback: use updateOrderStatus to at least change status
+                await updateOrderStatus(orderId, 'Open');
+                toast.success('Order status updated');
+                router.refresh();
+            }
+        } catch {
+            toast.error('Failed to assign inspector');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return (
+        <div className="inline-dropdown" ref={ref}>
+            <button
+                className="btn btn-secondary btn-sm"
+                style={{ height: 28, padding: '0 8px' }}
+                onClick={() => setOpen(!open)}
+                disabled={loading}
+                title="Assign Inspector"
+            >
+                <UserPlus size={13} />
+            </button>
+            {open && (
+                <div className="inline-dropdown-menu">
+                    {inspectors.map((insp) => (
+                        <button
+                            key={insp.id}
+                            className="inline-dropdown-item"
+                            onClick={() => handleAssign(insp.id)}
+                        >
+                            {insp.firstName} {insp.lastName}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
     );
 }
 

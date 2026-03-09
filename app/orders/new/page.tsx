@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createOrder } from '@/lib/actions';
 import { INSPECTION_TYPES } from '@/lib/types';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import SubmitButton from '@/components/SubmitButton';
 import { FileText, MapPin, UserCheck, ClipboardList } from 'lucide-react';
 
 export default async function NewOrderPage() {
@@ -26,7 +27,7 @@ export default async function NewOrderPage() {
                 </div>
                 <div className="header-actions">
                     <Link href="/orders" className="btn btn-secondary">Cancel</Link>
-                    <button type="submit" form="new-order-form" className="btn btn-primary">Create Order</button>
+                    <SubmitButton form="new-order-form">Create Order</SubmitButton>
                 </div>
             </header>
 
@@ -147,7 +148,7 @@ export default async function NewOrderPage() {
 
                 <div className="form-actions">
                     <Link href="/orders" className="btn btn-secondary">Cancel</Link>
-                    <button type="submit" className="btn btn-primary">Create Order</button>
+                    <SubmitButton>Create Order</SubmitButton>
                 </div>
             </form>
         </div>

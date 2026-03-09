@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { updateOrder } from '@/lib/actions';
 import { INSPECTION_TYPES, ORDER_STATUSES } from '@/lib/types';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import SubmitButton from '@/components/SubmitButton';
 import { FileText, MapPin, UserCheck, ClipboardList } from 'lucide-react';
 
 export default async function EditOrderPage({ params }: { params: { id: string } }) {
@@ -30,7 +31,7 @@ export default async function EditOrderPage({ params }: { params: { id: string }
                 </div>
                 <div className="header-actions">
                     <Link href={`/orders/${id}`} className="btn btn-secondary">Cancel</Link>
-                    <button type="submit" form="edit-order-form" className="btn btn-primary">Save Changes</button>
+                    <SubmitButton form="edit-order-form">Save Changes</SubmitButton>
                 </div>
             </header>
 
@@ -156,7 +157,7 @@ export default async function EditOrderPage({ params }: { params: { id: string }
 
                 <div className="form-actions">
                     <Link href={`/orders/${id}`} className="btn btn-secondary">Cancel</Link>
-                    <button type="submit" className="btn btn-primary">Save Changes</button>
+                    <SubmitButton>Save Changes</SubmitButton>
                 </div>
             </form>
         </div>
