@@ -2919,3 +2919,81 @@ textarea.form-control {
 .leaflet-control-attribution a {
   color: var(--text-tertiary) !important;
 }
+
+/* Print styles */
+@media print {
+  body {
+    background: white !important;
+    color: #111 !important;
+    font-size: 11pt;
+  }
+
+  .sidebar, .skip-to-content, .header-actions, .tab-bar,
+  .btn, .no-print, .modal-overlay, .leaflet-control-zoom,
+  .leaflet-control-attribution {
+    display: none !important;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+
+  .page-container {
+    padding: 0 !important;
+  }
+
+  .card {
+    border: 1px solid #ddd !important;
+    background: white !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  .stat-card {
+    border: 1px solid #ddd !important;
+    background: #f9f9f9 !important;
+  }
+
+  .badge {
+    border: 1px solid #999 !important;
+    color: #333 !important;
+  }
+
+  .data-table th, .data-table td {
+    border-bottom: 1px solid #ddd !important;
+    color: #111 !important;
+  }
+
+  .page-title {
+    color: #111 !important;
+    font-size: 18pt !important;
+  }
+
+  .page-subtitle {
+    color: #555 !important;
+  }
+
+  a {
+    color: #111 !important;
+    text-decoration: none !important;
+  }
+
+  .stat-value {
+    color: #111 !important;
+  }
+
+  .stat-label, .stat-icon {
+    color: #555 !important;
+  }
+}
+
+/* Copy feedback animation */
+@keyframes copy-flash {
+  0% { background-color: rgba(99, 102, 241, 0.3); }
+  100% { background-color: transparent; }
+}
+
+.copy-flash {
+  animation: copy-flash 0.6s ease-out;
+}

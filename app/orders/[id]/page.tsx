@@ -7,6 +7,7 @@ import PhotoUpload from '@/components/PhotoUpload';
 import StatusStepper from '@/components/StatusStepper';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import OrderDetailActions from './OrderDetailActions';
+import CopyButton from '@/components/CopyButton';
 import {
     MapPin, Phone, Building2, DollarSign, Calendar, User, Shield,
     FileText, AlertTriangle, Clock, CheckCircle, Tag, ExternalLink
@@ -52,7 +53,10 @@ export default async function OrderDetailPage({ params }: { params: { id: string
             <header className="page-header" style={{ alignItems: 'flex-start' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                        <h1 className="page-title">Order #{order.orderNumber}</h1>
+                        <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            Order #{order.orderNumber}
+                            <CopyButton text={order.orderNumber} label="order number" />
+                        </h1>
                         <span className={`badge badge-${getStatusColor(order.status)}`}>
                             {order.status}
                         </span>
@@ -124,6 +128,17 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                             </div>
                             {order.latitude && order.longitude && (
                                 <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border-subtle)' }}>
+                                    <div style={{
+                                        height: 180, borderRadius: 8, overflow: 'hidden', marginBottom: 12,
+                                        background: 'var(--bg-surface-hover)', position: 'relative',
+                                    }}>
+                                        <iframe
+                                            src={`https://www.openstreetmap.org/export/embed.html?bbox=${order.longitude! - 0.01},${order.latitude! - 0.007},${order.longitude! + 0.01},${order.latitude! + 0.007}&layer=mapnik&marker=${order.latitude},${order.longitude}`}
+                                            style={{ width: '100%', height: '100%', border: 0, filter: 'invert(0.9) hue-rotate(180deg) saturate(0.5) brightness(0.9)' }}
+                                            loading="lazy"
+                                            title="Property location map"
+                                        />
+                                    </div>
                                     <a
                                         href={`https://www.google.com/maps?q=${order.latitude},${order.longitude}`}
                                         target="_blank"
@@ -131,7 +146,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                                         className="btn btn-secondary btn-sm"
                                         style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}
                                     >
-                                        <ExternalLink size={12} /> View on Google Maps
+                                        <ExternalLink size={12} /> Open in Google Maps
                                     </a>
                                 </div>
                             )}
