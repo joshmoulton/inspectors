@@ -140,6 +140,14 @@ model WorkOrder {
   events      Event[]
   attachments Attachment[]
   history     HistoryEntry[]
+
+  @@index([status])
+  @@index([orderNumber])
+  @@index([createdAt])
+  @@index([clientId])
+  @@index([inspectorId])
+  @@index([city])
+  @@index([state])
 }
 
 model Contact {

@@ -1,4 +1,0 @@
-OrderNumber,Type,Address1,City,State,Zip,ClientCode,DueDate,ClientPay,InspectorPay,Instructions,County,MortgageCompany,LoanNumber,Vacant,PhotoRequired
-IMP-001,Standard,101 Import Ave,Austin,TX,78701,SGP,2026-04-01,65.00,35.00,Please check the roof carefully.,Travis,LendingCo,LN-9901,False,True
-IMP-002,Rush,202 Bulk Blvd,Dallas,TX,75201,SGP,2026-03-15,85.00,45.00,Beware of dog in backyard.,Dallas,TexLend,LN-9902,True,True
-IMP-003,Standard,303 Parser Pl,Houston,TX,77001,,2026-04-10,50.00,25.00,Gate code is 1234.,Harris,,,False,False

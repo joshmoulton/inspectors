@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import Papa from 'papaparse';
 import {
   Upload, FileSpreadsheet, X, CheckCircle, AlertTriangle,
-  Info, Loader2, Ban, BarChart3
+  Info, Loader2, Ban, BarChart3, Trash2
 } from 'lucide-react';
 
 const BATCH_SIZE = 100;
@@ -29,6 +29,8 @@ export default function ImportPage() {
     total: 0, processed: 0, inserted: 0, updated: 0, errors: [],
   });
   const [errorMessage, setErrorMessage] = useState('');
+  const [cleanupRunning, setCleanupRunning] = useState(false);
+  const [cleanupDone, setCleanupDone] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cancelledRef = useRef(false);
@@ -510,6 +512,63 @@ export default function ImportPage() {
               Re-importing the same CSV will update existing orders (matched by ID) rather than creating duplicates.
             </div>
           </div>
+
+          {/* Cleanup Section */}
+          {!cleanupDone && (
+            <div style={{
+              marginTop: 20, padding: 12, borderRadius: 8,
+              background: 'rgba(239, 68, 68, 0.04)',
+              border: '1px solid rgba(239, 68, 68, 0.12)',
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4, color: 'var(--status-danger)' }}>
+                Remove Mock Data
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 10 }}>
+                Delete seed demo orders (3), fake inspectors (4), and orphaned test clients. Keeps your admin account and all imported data.
+              </div>
+              <button
+                className="btn btn-secondary"
+                disabled={cleanupRunning}
+                style={{ width: '100%', fontSize: 12 }}
+                onClick={async () => {
+                  if (!confirm('Delete all mock/seed data? This keeps your admin account and all 28,740 imported orders.')) return;
+                  setCleanupRunning(true);
+                  try {
+                    const res = await fetch('/api/import/cleanup', { method: 'POST' });
+                    const data = await res.json();
+                    if (data.success) {
+                      toast.success(`Cleaned up: ${data.ordersDeleted} orders, ${data.usersDeleted} users, ${data.clientsDeleted} clients removed`);
+                      setCleanupDone(true);
+                      router.refresh();
+                    } else {
+                      toast.error(data.error || 'Cleanup failed');
+                    }
+                  } catch {
+                    toast.error('Cleanup request failed');
+                  }
+                  setCleanupRunning(false);
+                }}
+              >
+                {cleanupRunning ? (
+                  <><Loader2 size={12} className="spin" /> Cleaning...</>
+                ) : (
+                  <><Trash2 size={12} /> Remove Mock Data</>
+                )}
+              </button>
+            </div>
+          )}
+
+          {cleanupDone && (
+            <div style={{
+              marginTop: 20, padding: 12, borderRadius: 8,
+              background: 'rgba(16, 185, 129, 0.06)',
+              border: '1px solid rgba(16, 185, 129, 0.12)',
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--status-success)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle size={12} /> Mock data removed
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

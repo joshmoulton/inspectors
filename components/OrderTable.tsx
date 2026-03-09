@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ArrowUpDown, ClipboardList, Eye, CheckCircle, UserPlus } from 'lucide-react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { Search, ArrowUpDown, ClipboardList, Eye, CheckCircle, UserPlus, Loader2 } from 'lucide-react';
 import { updateOrderStatus } from '@/lib/actions';
 import { toast } from 'sonner';
 import Pagination from './Pagination';
@@ -29,77 +28,158 @@ interface Inspector {
     lastName: string;
 }
 
-const PAGE_SIZE = 25;
+interface ApiResponse {
+    orders: Order[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    statusCounts: Record<string, number>;
+}
 
+const PAGE_SIZE = 25;
 const STATUS_FILTERS = ['All', 'Open', 'Completed', 'Unassigned', 'Cancelled', 'Submitted', 'Paid'];
 
-export default function OrderTable({ initialOrders, inspectors = [], initialSearch = '' }: { initialOrders: any[]; inspectors?: Inspector[]; initialSearch?: string }) {
-    const [orders] = useState(initialOrders);
+interface OrderTableProps {
+    inspectors?: Inspector[];
+    initialSearch?: string;
+    initialPage?: number;
+    initialStatus?: string;
+    initialSort?: string;
+    initialDir?: 'asc' | 'desc';
+}
+
+export default function OrderTable({
+    inspectors = [],
+    initialSearch = '',
+    initialPage = 1,
+    initialStatus = 'All',
+    initialSort = 'orderNumber',
+    initialDir = 'desc',
+}: OrderTableProps) {
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+
     const [search, setSearch] = useState(initialSearch);
-    const [statusFilter, setStatusFilter] = useState('All');
+    const [statusFilter, setStatusFilter] = useState(initialStatus);
+    const [currentPage, setCurrentPage] = useState(initialPage);
+    const [sortField, setSortField] = useState(initialSort);
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>(initialDir);
+
     const router = useRouter();
-    const [currentPage, setCurrentPage] = useState(1);
-    const [sortField, setSortField] = useState<string | null>(null);
-    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const debounceRef = useRef<NodeJS.Timeout | null>(null);
+    const abortRef = useRef<AbortController | null>(null);
 
-    const filteredOrders = useMemo(() => {
-        let result = orders.filter((order: any) => {
-            const matchesSearch =
-                order.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
-                order.address1?.toLowerCase().includes(search.toLowerCase()) ||
-                order.city?.toLowerCase().includes(search.toLowerCase());
-            const matchesStatus = statusFilter === 'All' || order.status.includes(statusFilter);
-            return matchesSearch && matchesStatus;
-        });
+    // Fetch orders from paginated API
+    const fetchOrders = useCallback(async (
+        page: number,
+        status: string,
+        searchQuery: string,
+        sort: string,
+        dir: string,
+    ) => {
+        // Cancel any in-flight request
+        if (abortRef.current) abortRef.current.abort();
+        const controller = new AbortController();
+        abortRef.current = controller;
 
-        if (sortField) {
-            result = [...result].sort((a: any, b: any) => {
-                let valA = a[sortField] || '';
-                let valB = b[sortField] || '';
-                if (sortField === 'client') { valA = a.client?.code || ''; valB = b.client?.code || ''; }
-                if (sortField === 'inspector') { valA = a.inspector?.lastName || ''; valB = b.inspector?.lastName || ''; }
-                if (typeof valA === 'string') valA = valA.toLowerCase();
-                if (typeof valB === 'string') valB = valB.toLowerCase();
-                if (valA < valB) return sortDir === 'asc' ? -1 : 1;
-                if (valA > valB) return sortDir === 'asc' ? 1 : -1;
-                return 0;
+        setLoading(true);
+        try {
+            const params = new URLSearchParams({
+                page: String(page),
+                pageSize: String(PAGE_SIZE),
+                status,
+                search: searchQuery,
+                sortField: sort,
+                sortDir: dir,
             });
+
+            const res = await fetch(`/api/orders?${params}`, { signal: controller.signal });
+            if (!res.ok) throw new Error('Failed to fetch');
+
+            const data: ApiResponse = await res.json();
+            setOrders(data.orders);
+            setTotalPages(data.totalPages);
+            setTotalItems(data.total);
+            setStatusCounts(data.statusCounts);
+        } catch (err) {
+            if (err instanceof DOMException && err.name === 'AbortError') return;
+            console.error('Failed to fetch orders:', err);
+        } finally {
+            setLoading(false);
         }
+    }, []);
 
-        return result;
-    }, [orders, search, statusFilter, sortField, sortDir]);
+    // Sync URL params → state on mount and URL changes
+    useEffect(() => {
+        const q = searchParams.get('q') || searchParams.get('search') || '';
+        const page = parseInt(searchParams.get('page') || '1');
+        const status = searchParams.get('status') || 'All';
+        const sort = searchParams.get('sort') || 'orderNumber';
+        const dir = (searchParams.get('dir') as 'asc' | 'desc') || 'desc';
 
-    const totalPages = Math.ceil(filteredOrders.length / PAGE_SIZE);
-    const paginatedOrders = filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+        setSearch(q);
+        setCurrentPage(page);
+        setStatusFilter(status);
+        setSortField(sort);
+        setSortDir(dir);
 
-    function handleSort(field: string) {
-        if (sortField === field) {
-            setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
-        } else {
-            setSortField(field);
-            setSortDir('asc');
-        }
+        fetchOrders(page, status, q, sort, dir);
+    }, [searchParams, fetchOrders]);
+
+    // Update URL params (without full page reload)
+    function updateUrl(overrides: Record<string, string | number>) {
+        const params = new URLSearchParams();
+        const values = {
+            page: String(currentPage),
+            status: statusFilter,
+            search: search,
+            sort: sortField,
+            dir: sortDir,
+            ...Object.fromEntries(Object.entries(overrides).map(([k, v]) => [k, String(v)])),
+        };
+
+        // Only add non-default params to keep URL clean
+        if (values.page !== '1') params.set('page', values.page);
+        if (values.status !== 'All') params.set('status', values.status);
+        if (values.search) params.set('q', values.search);
+        if (values.sort !== 'orderNumber') params.set('sort', values.sort);
+        if (values.dir !== 'desc') params.set('dir', values.dir);
+
+        const qs = params.toString();
+        router.push(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
     }
 
-    // Reset to page 1 when filters change
     function handleSearchChange(val: string) {
         setSearch(val);
-        setCurrentPage(1);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            updateUrl({ search: val, page: 1 });
+        }, 300);
     }
 
     function handleStatusChange(status: string) {
         setStatusFilter(status);
         setCurrentPage(1);
+        updateUrl({ status, page: 1 });
     }
 
-    // Count orders per status for pills
-    const statusCounts = useMemo(() => {
-        const counts: Record<string, number> = { All: orders.length };
-        for (const s of STATUS_FILTERS.slice(1)) {
-            counts[s] = orders.filter((o: any) => o.status.includes(s)).length;
-        }
-        return counts;
-    }, [orders]);
+    function handleSort(field: string) {
+        const newDir = sortField === field ? (sortDir === 'asc' ? 'desc' : 'asc') : 'asc';
+        setSortField(field);
+        setSortDir(newDir);
+        updateUrl({ sort: field, dir: newDir });
+    }
+
+    function handlePageChange(page: number) {
+        setCurrentPage(page);
+        updateUrl({ page });
+    }
 
     return (
         <>
@@ -110,14 +190,14 @@ export default function OrderTable({ initialOrders, inspectors = [], initialSear
                         <Search size={16} className="search-icon" />
                         <input
                             type="text"
-                            placeholder="Search by order #, address, or city..."
+                            placeholder="Search by order #, address, city, state, loan #..."
                             className="form-control"
                             value={search}
                             onChange={(e) => handleSearchChange(e.target.value)}
                         />
                     </div>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
-                        {filteredOrders.length} of {orders.length} orders
+                        {loading ? '...' : `${totalItems.toLocaleString()} orders`}
                     </div>
                 </div>
                 <div className="filter-pills">
@@ -128,15 +208,27 @@ export default function OrderTable({ initialOrders, inspectors = [], initialSear
                             onClick={() => handleStatusChange(status)}
                         >
                             {status}
-                            <span className="pill-count">{statusCounts[status] || 0}</span>
+                            <span className="pill-count">{statusCounts[status]?.toLocaleString() || 0}</span>
                         </button>
                     ))}
                 </div>
             </div>
 
             {/* Table */}
-            <div className="card" style={{ overflow: 'hidden' }}>
-                {paginatedOrders.length > 0 ? (
+            <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
+                {/* Loading overlay */}
+                {loading && (
+                    <div style={{
+                        position: 'absolute', inset: 0, zIndex: 10,
+                        background: 'rgba(var(--bg-surface-rgb, 30, 30, 46), 0.7)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        backdropFilter: 'blur(2px)',
+                    }}>
+                        <Loader2 size={24} className="spin" style={{ color: 'var(--brand-primary-light)' }} />
+                    </div>
+                )}
+
+                {orders.length > 0 || loading ? (
                     <>
                         <div className="table-scroll">
                             <table className="data-table">
@@ -167,79 +259,72 @@ export default function OrderTable({ initialOrders, inspectors = [], initialSear
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <AnimatePresence>
-                                        {paginatedOrders.map((order: any) => (
-                                            <motion.tr
-                                                key={order.id}
-                                                layout
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, scale: 0.95 }}
-                                                transition={{ duration: 0.2 }}
-                                            >
-                                                <td style={{ fontWeight: 700, color: 'var(--brand-primary-light)' }}>
-                                                    <Link href={`/orders/${order.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{order.orderNumber}</Link>
-                                                </td>
-                                                <td>{order.type}</td>
-                                                <td>
-                                                    <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                                        {order.client?.code || '---'}
-                                                    </span>
-                                                </td>
-                                                <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{order.address1}</td>
-                                                <td>{order.city}</td>
-                                                <td style={{ textAlign: 'center' }}>{order.state}</td>
-                                                <td style={{ fontSize: 13 }}>
-                                                    {order.dueDate ? new Date(order.dueDate).toLocaleDateString() : '---'}
-                                                </td>
-                                                <td>
-                                                    {order.inspector ? (
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                            <div style={{
-                                                                width: 24, height: 24, borderRadius: '50%',
-                                                                background: 'rgba(99, 102, 241, 0.2)',
-                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                fontSize: 10, fontWeight: 700, color: 'var(--brand-primary-light)'
-                                                            }}>
-                                                                {order.inspector.firstName[0]}{order.inspector.lastName[0]}
-                                                            </div>
-                                                            <span style={{ fontSize: 12 }}>{order.inspector.firstName[0]}. {order.inspector.lastName}</span>
+                                    {orders.map((order) => (
+                                        <tr key={order.id}>
+                                            <td style={{ fontWeight: 700, color: 'var(--brand-primary-light)' }}>
+                                                <Link href={`/orders/${order.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{order.orderNumber}</Link>
+                                            </td>
+                                            <td>{order.type}</td>
+                                            <td>
+                                                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                    {order.client?.code || '---'}
+                                                </span>
+                                            </td>
+                                            <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{order.address1}</td>
+                                            <td>{order.city}</td>
+                                            <td style={{ textAlign: 'center' }}>{order.state}</td>
+                                            <td style={{ fontSize: 13 }}>
+                                                {order.dueDate ? new Date(order.dueDate).toLocaleDateString() : '---'}
+                                            </td>
+                                            <td>
+                                                {order.inspector ? (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                        <div style={{
+                                                            width: 24, height: 24, borderRadius: '50%',
+                                                            background: 'rgba(99, 102, 241, 0.2)',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            fontSize: 10, fontWeight: 700, color: 'var(--brand-primary-light)'
+                                                        }}>
+                                                            {order.inspector.firstName[0]}{order.inspector.lastName[0]}
                                                         </div>
-                                                    ) : (
-                                                        <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Unassigned</span>
-                                                    )}
-                                                </td>
-                                                <td>
-                                                    <span className={`badge badge-${getStatusColor(order.status)}`}>
-                                                        {order.status}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                        <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" style={{ height: 28, padding: '0 8px' }} title="View Details">
-                                                            <Eye size={13} />
-                                                        </Link>
-                                                        {order.status === 'Open' && (
-                                                            <QuickCompleteButton orderId={order.id} />
-                                                        )}
-                                                        {order.status === 'Unassigned' && inspectors.length > 0 && (
-                                                            <QuickAssignButton orderId={order.id} inspectors={inspectors} />
-                                                        )}
+                                                        <span style={{ fontSize: 12 }}>{order.inspector.firstName[0]}. {order.inspector.lastName}</span>
                                                     </div>
-                                                </td>
-                                            </motion.tr>
-                                        ))}
-                                    </AnimatePresence>
+                                                ) : (
+                                                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Unassigned</span>
+                                                )}
+                                            </td>
+                                            <td>
+                                                <span className={`badge badge-${getStatusColor(order.status)}`}>
+                                                    {order.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" style={{ height: 28, padding: '0 8px' }} title="View Details">
+                                                        <Eye size={13} />
+                                                    </Link>
+                                                    {order.status === 'Open' && (
+                                                        <QuickCompleteButton orderId={order.id} />
+                                                    )}
+                                                    {order.status === 'Unassigned' && inspectors.length > 0 && (
+                                                        <QuickAssignButton orderId={order.id} inspectors={inspectors} />
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
-                        <Pagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            totalItems={filteredOrders.length}
-                            pageSize={PAGE_SIZE}
-                            onPageChange={setCurrentPage}
-                        />
+                        {totalPages > 1 && (
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalItems={totalItems}
+                                pageSize={PAGE_SIZE}
+                                onPageChange={handlePageChange}
+                            />
+                        )}
                     </>
                 ) : (
                     <EmptyState
@@ -298,11 +383,6 @@ function QuickAssignButton({ orderId, inspectors }: { orderId: string; inspector
         setLoading(true);
         setOpen(false);
         try {
-            // Use fetch to call the assign endpoint via server action
-            const formData = new FormData();
-            formData.append('inspectorId', inspectorId);
-            formData.append('status', 'Open');
-
             const res = await fetch(`/api/orders/${orderId}/assign`, {
                 method: 'POST',
                 body: JSON.stringify({ inspectorId }),
@@ -313,7 +393,6 @@ function QuickAssignButton({ orderId, inspectors }: { orderId: string; inspector
                 toast.success('Inspector assigned');
                 router.refresh();
             } else {
-                // Fallback: use updateOrderStatus to at least change status
                 await updateOrderStatus(orderId, 'Open');
                 toast.success('Order status updated');
                 router.refresh();
