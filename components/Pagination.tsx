@@ -35,7 +35,7 @@ export default function Pagination({ currentPage, totalPages, totalItems, pageSi
     return (
         <div className="pagination">
             <span className="pagination-info">
-                Showing {startItem}-{endItem} of {totalItems}
+                Showing {startItem.toLocaleString()}-{endItem.toLocaleString()} of {totalItems.toLocaleString()}
             </span>
             <div className="pagination-controls">
                 <button

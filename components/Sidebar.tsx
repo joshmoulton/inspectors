@@ -55,7 +55,7 @@ export function Sidebar({ user, openOrdersCount = 0 }: { user: any, openOrdersCo
 
     const dynamicNavItems = navItems.map(item =>
         'label' in item && item.label === 'Orders'
-            ? { ...item, badge: openOrdersCount > 0 ? openOrdersCount.toString() : null }
+            ? { ...item, badge: openOrdersCount > 0 ? openOrdersCount.toLocaleString() : null }
             : item
     );
 
@@ -95,16 +95,12 @@ export function Sidebar({ user, openOrdersCount = 0 }: { user: any, openOrdersCo
                     <button
                         className="sidebar-search-wrapper"
                         onClick={() => {
-                            // Trigger Cmd+K command palette
                             document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }));
                         }}
-                        style={{ cursor: 'pointer', border: 'none', width: '100%', textAlign: 'left', font: 'inherit' }}
                     >
                         <Search size={14} className="search-icon" />
-                        <span style={{ flex: 1, color: 'var(--text-tertiary)', fontSize: 13 }}>Search...</span>
-                        <kbd style={{ fontSize: 10, fontWeight: 600, padding: '1px 5px', borderRadius: 3, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)' }}>
-                            {'\u2318'}K
-                        </kbd>
+                        <span style={{ flex: 1, color: 'var(--text-tertiary)', fontSize: 13, textAlign: 'left' }}>Search...</span>
+                        <kbd className="command-palette-kbd">{'\u2318'}K</kbd>
                     </button>
                 </div>
                 <nav className="sidebar-nav">

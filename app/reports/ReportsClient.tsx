@@ -105,7 +105,7 @@ export default function ReportsClient({
                         <DollarSign size={22} />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">${(totalRevenue / 1000).toFixed(1)}K</div>
+                        <div className="stat-value">${totalRevenue.toLocaleString()}</div>
                         <div className="stat-label">Total Revenue</div>
                     </div>
                 </div>
@@ -199,7 +199,7 @@ export default function ReportsClient({
                                     <div key={s.status} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
                                         <div style={{ width: 8, height: 8, borderRadius: 2, background: PIE_COLORS[i % PIE_COLORS.length] }} />
                                         <span style={{ color: 'var(--text-tertiary)' }}>{s.status}</span>
-                                        <span style={{ fontWeight: 700, fontFamily: 'monospace' }}>{s._count}</span>
+                                        <span style={{ fontWeight: 700, fontFamily: 'monospace' }}>{s._count.toLocaleString()}</span>
                                     </div>
                                 ))}
                             </div>
@@ -318,7 +318,7 @@ export default function ReportsClient({
                                 <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                                     <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} />
-                                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v.toLocaleString()}`} />
                                     <Tooltip
                                         contentStyle={{
                                             backgroundColor: 'rgba(15, 23, 42, 0.95)',
@@ -352,7 +352,7 @@ export default function ReportsClient({
                                 {monthlyData.map(m => (
                                     <tr key={m.month}>
                                         <td style={{ fontWeight: 600 }}>{m.month}</td>
-                                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{m.count}</td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{m.count.toLocaleString()}</td>
                                         <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--status-success)' }}>${m.revenue.toLocaleString()}</td>
                                         <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--text-tertiary)' }}>
                                             ${m.count > 0 ? (m.revenue / m.count).toFixed(2) : '0.00'}
@@ -389,9 +389,9 @@ export default function ReportsClient({
                                 return (
                                     <tr key={insp.name}>
                                         <td style={{ fontWeight: 600 }}>{insp.name}</td>
-                                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{insp.total}</td>
-                                        <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--status-warning)' }}>{insp.open}</td>
-                                        <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--status-success)' }}>{insp.completed}</td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{insp.total.toLocaleString()}</td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--status-warning)' }}>{insp.open.toLocaleString()}</td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--status-success)' }}>{insp.completed.toLocaleString()}</td>
                                         <td style={{ textAlign: 'right' }}>
                                             <span style={{
                                                 fontWeight: 700, fontSize: 12,

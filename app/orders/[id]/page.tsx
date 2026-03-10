@@ -174,14 +174,14 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                                     background: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.15)'
                                 }}>
                                     <div style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 4 }}>Client Pay</div>
-                                    <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--status-success)' }}>${(order.clientPay || 0).toFixed(2)}</div>
+                                    <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--status-success)' }}>${(order.clientPay || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                 </div>
                                 <div style={{
                                     padding: 16, borderRadius: 10, textAlign: 'center',
                                     background: 'rgba(59, 130, 246, 0.06)', border: '1px solid rgba(59, 130, 246, 0.15)'
                                 }}>
                                     <div style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 4 }}>Inspector Pay</div>
-                                    <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--status-info)' }}>${(order.inspectorPay || 0).toFixed(2)}</div>
+                                    <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--status-info)' }}>${(order.inspectorPay || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                 </div>
                                 <div style={{
                                     padding: 16, borderRadius: 10, textAlign: 'center',
@@ -189,7 +189,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                                     border: `1px solid ${profit >= 0 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}`
                                 }}>
                                     <div style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 4 }}>Profit</div>
-                                    <div style={{ fontSize: 22, fontWeight: 800, color: profit >= 0 ? 'var(--status-success)' : 'var(--status-danger)' }}>${profit.toFixed(2)}</div>
+                                    <div style={{ fontSize: 22, fontWeight: 800, color: profit >= 0 ? 'var(--status-success)' : 'var(--status-danger)' }}>${profit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                 </div>
                             </div>
                         </div>

@@ -75,7 +75,7 @@ export default function DashboardClient({ stats, recentOrders, chartData, recent
                             </div>
                             <div className="stat-content">
                                 <div className="stat-value" style={{ color: stat.key === 'totalOrders' ? 'var(--text-primary)' : stat.color }}>
-                                    {value}
+                                    {value.toLocaleString()}
                                 </div>
                                 <div className="stat-label">{stat.label}</div>
                             </div>
@@ -288,7 +288,7 @@ export default function DashboardClient({ stats, recentOrders, chartData, recent
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                                     <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} />
-                                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => v.toLocaleString()} />
                                     <Tooltip
                                         contentStyle={{
                                             backgroundColor: 'rgba(15, 23, 42, 0.95)',

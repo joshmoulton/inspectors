@@ -85,7 +85,7 @@ export default async function UsersPage() {
                                         </span>
                                     </td>
                                     <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 600 }}>
-                                        {orderCount > 0 ? orderCount : <span style={{ color: 'var(--text-tertiary)' }}>0</span>}
+                                        {orderCount > 0 ? orderCount.toLocaleString() : <span style={{ color: 'var(--text-tertiary)' }}>0</span>}
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
                                         {pastDueCount > 0 ? (
