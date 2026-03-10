@@ -17,6 +17,8 @@ interface ImportStats {
   inserted: number;
   updated: number;
   errors: { row: number; id: string; message: string }[];
+  createdInspectors: string[];
+  createdQCUsers: string[];
 }
 
 type ImportPhase = 'idle' | 'counting' | 'importing' | 'finalizing' | 'done' | 'cancelled' | 'error';
@@ -26,7 +28,7 @@ export default function ImportPage() {
   const [file, setFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<ImportPhase>('idle');
   const [stats, setStats] = useState<ImportStats>({
-    total: 0, processed: 0, inserted: 0, updated: 0, errors: [],
+    total: 0, processed: 0, inserted: 0, updated: 0, errors: [], createdInspectors: [], createdQCUsers: [],
   });
   const [errorMessage, setErrorMessage] = useState('');
   const [cleanupRunning, setCleanupRunning] = useState(false);
@@ -63,7 +65,7 @@ export default function ImportPage() {
 
   function resetState() {
     setPhase('idle');
-    setStats({ total: 0, processed: 0, inserted: 0, updated: 0, errors: [] });
+    setStats({ total: 0, processed: 0, inserted: 0, updated: 0, errors: [], createdInspectors: [], createdQCUsers: [] });
     setErrorMessage('');
     cancelledRef.current = false;
   }
@@ -89,6 +91,8 @@ export default function ImportPage() {
       inserted: number;
       updated: number;
       errors: { row: number; id: string; message: string }[];
+      createdInspectors: string[];
+      createdQCUsers: string[];
     }>;
   }
 
@@ -97,7 +101,7 @@ export default function ImportPage() {
 
     cancelledRef.current = false;
     setPhase('counting');
-    setStats({ total: 0, processed: 0, inserted: 0, updated: 0, errors: [] });
+    setStats({ total: 0, processed: 0, inserted: 0, updated: 0, errors: [], createdInspectors: [], createdQCUsers: [] });
     setErrorMessage('');
 
     // Phase 1: Parse entire CSV into an array
@@ -125,6 +129,8 @@ export default function ImportPage() {
     let totalInserted = 0;
     let totalUpdated = 0;
     const allErrors: { row: number; id: string; message: string }[] = [];
+    const allCreatedInspectors = new Set<string>();
+    const allCreatedQCUsers = new Set<string>();
 
     for (let i = 0; i < allRows.length; i += BATCH_SIZE) {
       if (cancelledRef.current) break;
@@ -137,6 +143,8 @@ export default function ImportPage() {
         totalInserted += result.inserted;
         totalUpdated += result.updated;
         allErrors.push(...result.errors);
+        result.createdInspectors?.forEach(n => allCreatedInspectors.add(n));
+        result.createdQCUsers?.forEach(n => allCreatedQCUsers.add(n));
 
         setStats({
           total: allRows.length,
@@ -144,6 +152,8 @@ export default function ImportPage() {
           inserted: totalInserted,
           updated: totalUpdated,
           errors: [...allErrors],
+          createdInspectors: [...allCreatedInspectors],
+          createdQCUsers: [...allCreatedQCUsers],
         });
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Batch failed';
@@ -155,6 +165,8 @@ export default function ImportPage() {
           inserted: totalInserted,
           updated: totalUpdated,
           errors: [...allErrors],
+          createdInspectors: [...allCreatedInspectors],
+          createdQCUsers: [...allCreatedQCUsers],
         });
       }
     }
@@ -414,6 +426,34 @@ export default function ImportPage() {
                 </div>
               )}
 
+              {/* Auto-created inspectors notice */}
+              {(stats.createdInspectors.length > 0 || stats.createdQCUsers.length > 0) && (
+                <div style={{
+                  marginTop: 16, padding: 12, borderRadius: 8,
+                  background: 'rgba(99, 102, 241, 0.06)',
+                  border: '1px solid rgba(99, 102, 241, 0.15)',
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-primary-light)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Info size={14} /> Auto-Created Users
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 8, lineHeight: 1.5 }}>
+                    The following users were not found and were automatically created with default password <code style={{ fontSize: 10, padding: '1px 4px', borderRadius: 3, background: 'var(--bg-surface-hover)' }}>changeme123</code>
+                  </div>
+                  {stats.createdInspectors.length > 0 && (
+                    <div style={{ marginBottom: 6 }}>
+                      <span style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-tertiary)' }}>Inspectors: </span>
+                      <span style={{ fontSize: 12 }}>{stats.createdInspectors.join(', ')}</span>
+                    </div>
+                  )}
+                  {stats.createdQCUsers.length > 0 && (
+                    <div>
+                      <span style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-tertiary)' }}>QC Users: </span>
+                      <span style={{ fontSize: 12 }}>{stats.createdQCUsers.join(', ')}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {errorMessage && (
                 <div style={{
                   padding: 12, borderRadius: 8, fontSize: 13,
@@ -480,7 +520,7 @@ export default function ImportPage() {
               { col: 'ID', desc: 'Used as order number (unique identifier).' },
               { col: 'Address, City, State, Zip', desc: 'Property address fields.' },
               { col: 'Client', desc: 'Matched by name. Auto-created if new.' },
-              { col: 'Inspector', desc: 'Matched by first + last name.' },
+              { col: 'Inspector', desc: 'Matched by name. Auto-created if new (password: changeme123).' },
               { col: 'Status', desc: 'Mapped to system statuses (Open, Paid, etc.).' },
               { col: 'WorkCode', desc: 'Inspection type (e.g., Exterior Occupancy).' },
               { col: 'InspectorPay', desc: 'Numeric pay amount.' },

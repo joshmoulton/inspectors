@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { auth } from "@/auth";
 import { Toaster } from 'sonner';
 import KeyboardShortcuts from '@/components/KeyboardShortcuts';
+import CommandPalette from '@/components/CommandPalette';
 import NavigationProgress from '@/components/NavigationProgress';
 import prisma from '@/lib/prisma';
 import { Suspense } from 'react';
@@ -61,6 +62,7 @@ export default async function RootLayout({
             </main>
           </div>
           {session && <KeyboardShortcuts />}
+          {session && <CommandPalette />}
           <Toaster position="bottom-right" className="powerade-toaster" richColors closeButton />
         </ThemeProvider>
       </body>

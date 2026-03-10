@@ -11,6 +11,7 @@ export async function createContact(formData: FormData) {
     const title = formData.get('title') as string || null;
     const company = formData.get('company') as string || null;
     const notes = formData.get('notes') as string || null;
+    const clientId = formData.get('clientId') as string || null;
 
     try {
         await prisma.contact.create({
@@ -22,6 +23,7 @@ export async function createContact(formData: FormData) {
                 title,
                 company,
                 notes,
+                clientId: clientId || null,
             }
         });
         revalidatePath('/contacts');
@@ -40,6 +42,7 @@ export async function updateContact(id: string, formData: FormData) {
     const title = formData.get('title') as string || null;
     const company = formData.get('company') as string || null;
     const notes = formData.get('notes') as string || null;
+    const clientId = formData.get('clientId') as string || null;
 
     try {
         await prisma.contact.update({
@@ -52,6 +55,7 @@ export async function updateContact(id: string, formData: FormData) {
                 title,
                 company,
                 notes,
+                clientId: clientId || null,
             }
         });
         revalidatePath('/contacts');

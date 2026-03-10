@@ -114,26 +114,54 @@ async function findOrCreateClient(name: string): Promise<string | null> {
   return client.id;
 }
 
-async function findInspector(name: string): Promise<string | null> {
-  if (!name || name.trim() === '') return null;
+async function findOrCreateInspector(name: string, role: string = 'inspector'): Promise<{ id: string | null; created: boolean }> {
+  if (!name || name.trim() === '') return { id: null, created: false };
   const trimmed = name.trim();
 
-  if (inspectorCache.has(trimmed)) return inspectorCache.get(trimmed)!;
+  if (inspectorCache.has(trimmed)) return { id: inspectorCache.get(trimmed)!, created: false };
 
   const parts = trimmed.split(/\s+/);
   const firstName = parts[0];
-  const lastName = parts.slice(1).join(' ');
+  const lastName = parts.slice(1).join(' ') || parts[0];
 
+  // Try to find existing user
   const user = await prisma.user.findFirst({
     where: {
       firstName: { equals: firstName, mode: 'insensitive' },
-      ...(lastName ? { lastName: { equals: lastName, mode: 'insensitive' } } : {}),
+      ...(lastName && lastName !== firstName ? { lastName: { equals: lastName, mode: 'insensitive' } } : {}),
     },
   });
 
-  const id = user?.id || null;
-  inspectorCache.set(trimmed, id);
-  return id;
+  if (user) {
+    inspectorCache.set(trimmed, user.id);
+    return { id: user.id, created: false };
+  }
+
+  // Auto-create the inspector
+  const bcrypt = await import('bcrypt');
+  const username = `${firstName.toLowerCase()}${lastName ? lastName.toLowerCase().replace(/\s/g, '') : ''}`;
+
+  // Ensure unique username
+  let finalUsername = username;
+  let counter = 1;
+  while (await prisma.user.findUnique({ where: { username: finalUsername } })) {
+    finalUsername = `${username}${counter}`;
+    counter++;
+  }
+
+  const newUser = await prisma.user.create({
+    data: {
+      username: finalUsername,
+      password: await bcrypt.hash('changeme123', 10),
+      firstName,
+      lastName: lastName || firstName,
+      role,
+      active: true,
+    },
+  });
+
+  inspectorCache.set(trimmed, newUser.id);
+  return { id: newUser.id, created: true };
 }
 
 export async function POST(request: NextRequest) {
@@ -150,6 +178,8 @@ export async function POST(request: NextRequest) {
     let inserted = 0;
     let updated = 0;
     const errors: { row: number; id: string; message: string }[] = [];
+    const createdInspectors: string[] = [];
+    const createdQCUsers: string[] = [];
 
     // Process rows individually (no transaction wrapper so one bad row doesn't kill the batch)
     for (let i = 0; i < rows.length; i++) {
@@ -167,8 +197,16 @@ export async function POST(request: NextRequest) {
         }
 
         const clientId = await findOrCreateClient(row.Client || '');
-        const inspectorId = await findInspector(row.Inspector || '');
-        const qcUserId = await findInspector(row.QCUser || '');
+        const inspectorResult = await findOrCreateInspector(row.Inspector || '', 'inspector');
+        const inspectorId = inspectorResult.id;
+        if (inspectorResult.created && row.Inspector) {
+          createdInspectors.push(row.Inspector.trim());
+        }
+        const qcResult = await findOrCreateInspector(row.QCUser || '', 'qc');
+        const qcUserId = qcResult.id;
+        if (qcResult.created && row.QCUser) {
+          createdQCUsers.push(row.QCUser.trim());
+        }
 
         const data = {
           workCode: row.WorkCode?.trim() || null,
@@ -226,7 +264,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ inserted, updated, errors });
+    return NextResponse.json({
+      inserted,
+      updated,
+      errors,
+      createdInspectors: [...new Set(createdInspectors)],
+      createdQCUsers: [...new Set(createdQCUsers)],
+    });
   } catch (error) {
     console.error('Batch import error:', error);
     const message = error instanceof Error ? error.message : 'Batch import failed';

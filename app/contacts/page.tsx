@@ -10,16 +10,24 @@ export default function ContactsPage() {
 // Server Component handles data fetching
 async function ContactsLoader() {
     let contacts: any[] = [];
+    let clients: { id: string; name: string }[] = [];
     try {
-        contacts = await prisma.contact.findMany({
-            orderBy: [
-                { lastName: 'asc' },
-                { firstName: 'asc' }
-            ]
-        });
+        [contacts, clients] = await Promise.all([
+            prisma.contact.findMany({
+                include: { client: { select: { id: true, name: true } } },
+                orderBy: [
+                    { lastName: 'asc' },
+                    { firstName: 'asc' }
+                ],
+            }),
+            prisma.client.findMany({
+                select: { id: true, name: true },
+                orderBy: { name: 'asc' },
+            }),
+        ]);
     } catch {
-        // Fallback to empty contacts on DB error
+        // Fallback to empty on DB error
     }
 
-    return <ContactsClient initialContacts={contacts} />;
+    return <ContactsClient initialContacts={contacts} clients={clients} />;
 }

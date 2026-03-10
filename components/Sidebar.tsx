@@ -37,7 +37,6 @@ export function Sidebar({ user, openOrdersCount = 0 }: { user: any, openOrdersCo
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const [collapsed, setCollapsed] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         const saved = localStorage.getItem('sidebar-collapsed');
@@ -93,22 +92,20 @@ export function Sidebar({ user, openOrdersCount = 0 }: { user: any, openOrdersCo
                     )}
                 </div>
                 <div className="sidebar-search">
-                    <div className="sidebar-search-wrapper">
+                    <button
+                        className="sidebar-search-wrapper"
+                        onClick={() => {
+                            // Trigger Cmd+K command palette
+                            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }));
+                        }}
+                        style={{ cursor: 'pointer', border: 'none', width: '100%', textAlign: 'left', font: 'inherit' }}
+                    >
                         <Search size={14} className="search-icon" />
-                        <input
-                            type="text"
-                            placeholder="Search orders..."
-                            aria-label="Search orders"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && searchQuery.trim()) {
-                                    router.push(`/orders?q=${encodeURIComponent(searchQuery.trim())}`);
-                                    setSearchQuery('');
-                                }
-                            }}
-                        />
-                    </div>
+                        <span style={{ flex: 1, color: 'var(--text-tertiary)', fontSize: 13 }}>Search...</span>
+                        <kbd style={{ fontSize: 10, fontWeight: 600, padding: '1px 5px', borderRadius: 3, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', color: 'var(--text-tertiary)' }}>
+                            {'\u2318'}K
+                        </kbd>
+                    </button>
                 </div>
                 <nav className="sidebar-nav">
                     {dynamicNavItems.map((item, i) => {

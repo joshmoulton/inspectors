@@ -2,26 +2,52 @@
 
 import { useState } from 'react';
 import { createContact, updateContact, deleteContact } from '@/lib/contactActions';
-import { Contact } from '@prisma/client';
 import { toast } from 'sonner';
-import { Search, Plus, Mail, Phone, Edit, Trash2, X } from 'lucide-react';
+import { Search, Plus, Mail, Phone, Edit, Trash2, X, Building2 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
-export default function ContactsClient({ initialContacts }: { initialContacts: Contact[] }) {
+interface ContactWithClient {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string | null;
+    phone: string | null;
+    title: string | null;
+    company: string | null;
+    notes: string | null;
+    active: boolean;
+    clientId: string | null;
+    client?: { id: string; name: string } | null;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+interface ClientOption {
+    id: string;
+    name: string;
+}
+
+export default function ContactsClient({ initialContacts, clients = [] }: { initialContacts: ContactWithClient[]; clients?: ClientOption[] }) {
     const [search, setSearch] = useState('');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [editingContact, setEditingContact] = useState<Contact | null>(null);
+    const [editingContact, setEditingContact] = useState<ContactWithClient | null>(null);
     const [isSaving, setIsSaving] = useState(false);
-    const [deleteTarget, setDeleteTarget] = useState<Contact | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<ContactWithClient | null>(null);
+    const [filterClient, setFilterClient] = useState('');
 
     const filteredContacts = initialContacts.filter(
-        (c) =>
-            (c.firstName + ' ' + c.lastName).toLowerCase().includes(search.toLowerCase()) ||
-            c.company?.toLowerCase().includes(search.toLowerCase()) ||
-            c.email?.toLowerCase().includes(search.toLowerCase())
+        (c) => {
+            const matchesSearch =
+                (c.firstName + ' ' + c.lastName).toLowerCase().includes(search.toLowerCase()) ||
+                c.company?.toLowerCase().includes(search.toLowerCase()) ||
+                c.email?.toLowerCase().includes(search.toLowerCase()) ||
+                c.client?.name?.toLowerCase().includes(search.toLowerCase());
+            const matchesClient = !filterClient || c.clientId === filterClient;
+            return matchesSearch && matchesClient;
+        }
     );
 
-    function handleOpenDialog(contact?: Contact) {
+    function handleOpenDialog(contact?: ContactWithClient) {
         setEditingContact(contact || null);
         setIsDialogOpen(true);
     }
@@ -52,7 +78,7 @@ export default function ContactsClient({ initialContacts }: { initialContacts: C
         }
     }
 
-    async function handleDelete(contact: Contact) {
+    async function handleDelete(contact: ContactWithClient) {
         const res = await deleteContact(contact.id);
         if (!res.success) {
             toast.error(res.error || 'Failed to delete contact');
@@ -77,17 +103,32 @@ export default function ContactsClient({ initialContacts }: { initialContacts: C
             </header>
 
             <div className="card" style={{ overflow: 'hidden' }}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div className="search-input-wrapper" style={{ maxWidth: 320 }}>
-                        <Search size={15} className="search-icon" />
-                        <input
-                            type="text"
-                            placeholder="Search contacts..."
-                            className="form-control"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            style={{ paddingLeft: 36 }}
-                        />
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1 }}>
+                        <div className="search-input-wrapper" style={{ maxWidth: 320, flex: 1 }}>
+                            <Search size={15} className="search-icon" />
+                            <input
+                                type="text"
+                                placeholder="Search contacts..."
+                                className="form-control"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                style={{ paddingLeft: 36 }}
+                            />
+                        </div>
+                        {clients.length > 0 && (
+                            <select
+                                className="form-control"
+                                value={filterClient}
+                                onChange={(e) => setFilterClient(e.target.value)}
+                                style={{ maxWidth: 200, fontSize: 13 }}
+                            >
+                                <option value="">All Clients</option>
+                                {clients.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                        )}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                         Showing {filteredContacts.length} contacts
@@ -98,6 +139,7 @@ export default function ContactsClient({ initialContacts }: { initialContacts: C
                     <thead>
                         <tr>
                             <th>Name</th>
+                            <th>Client</th>
                             <th>Company & Title</th>
                             <th>Contact Info</th>
                             <th>Actions</th>
@@ -106,7 +148,7 @@ export default function ContactsClient({ initialContacts }: { initialContacts: C
                     <tbody>
                         {filteredContacts.length === 0 ? (
                             <tr>
-                                <td colSpan={4} style={{ padding: 48, textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                                <td colSpan={5} style={{ padding: 48, textAlign: 'center', color: 'var(--text-tertiary)' }}>
                                     No contacts found.
                                 </td>
                             </tr>
@@ -123,6 +165,16 @@ export default function ContactsClient({ initialContacts }: { initialContacts: C
                                             {contact.firstName[0]}{contact.lastName[0]}
                                         </div>
                                         {contact.firstName} {contact.lastName}
+                                    </td>
+                                    <td>
+                                        {contact.client ? (
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+                                                <Building2 size={12} style={{ color: 'var(--brand-primary-light)' }} />
+                                                {contact.client.name}
+                                            </span>
+                                        ) : (
+                                            <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>—</span>
+                                        )}
                                     </td>
                                     <td>
                                         <div style={{ fontSize: 13 }}>{contact.company || <span style={{ color: 'var(--text-tertiary)' }}>—</span>}</div>
@@ -210,6 +262,19 @@ export default function ContactsClient({ initialContacts }: { initialContacts: C
                                     <input type="text" name="title" className="form-control" defaultValue={editingContact?.title || ''} />
                                 </div>
                             </div>
+
+                            {clients.length > 0 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    <label className="form-label">Linked Client</label>
+                                    <select name="clientId" className="form-control" defaultValue={editingContact?.clientId || ''}>
+                                        <option value="">No client linked</option>
+                                        {clients.map(c => (
+                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        ))}
+                                    </select>
+                                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Associate this contact with a client company</span>
+                                </div>
+                            )}
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 <label className="form-label">Notes</label>
