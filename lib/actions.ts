@@ -94,6 +94,14 @@ export async function updateOrder(id: string, formData: FormData) {
     const clientPay = Math.max(0, parseFloat(formData.get('clientPay') as string) || 0);
     const instructions = formData.get('instructions') as string;
     const status = formData.get('status') as string;
+    const county = formData.get('county') as string || null;
+    const mortgageCompany = formData.get('mortgageCompany') as string || null;
+    const loanNumber = formData.get('loanNumber') as string || null;
+    const owner = formData.get('owner') as string || null;
+    const vendor = formData.get('vendor') as string || null;
+    const clientOrderNum = formData.get('clientOrderNum') as string || null;
+    const windowStartDate = formData.get('windowStartDate') as string;
+    const windowEndDate = formData.get('windowEndDate') as string;
 
     if (!orderNumber?.trim() || !clientId?.trim() || !address1?.trim() || !city?.trim() || !state?.trim() || !zip?.trim()) {
         throw new Error('Missing required fields');
@@ -112,11 +120,19 @@ export async function updateOrder(id: string, formData: FormData) {
                 city,
                 state,
                 zip,
+                county: county || null,
                 inspectorId: inspectorId === "" ? null : inspectorId,
                 dueDate: dueDate ? new Date(dueDate) : null,
+                windowStartDate: windowStartDate ? new Date(windowStartDate) : null,
+                windowEndDate: windowEndDate ? new Date(windowEndDate) : null,
                 inspectorPay,
                 clientPay,
                 instructions,
+                mortgageCompany: mortgageCompany || null,
+                loanNumber: loanNumber || null,
+                owner: owner || null,
+                vendor: vendor || null,
+                clientOrderNum: clientOrderNum || null,
                 status: status || (inspectorId ? 'Open' : 'Unassigned'),
             },
         });
