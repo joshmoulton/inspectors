@@ -20,6 +20,8 @@ export async function GET(request: NextRequest) {
     const search = params.get('search')?.trim() || '';
     const sortField = params.get('sortField') || 'orderNumber';
     const sortDir = params.get('sortDir') === 'asc' ? 'asc' : 'desc';
+    const inspectorId = params.get('inspector') || '';
+    const clientId = params.get('client') || '';
 
     // Build where clause
     const conditions: Prisma.WorkOrderWhereInput[] = [];
@@ -27,6 +29,16 @@ export async function GET(request: NextRequest) {
     // Status filter
     if (status !== 'All' && STATUS_GROUPS[status]) {
       conditions.push({ status: { in: STATUS_GROUPS[status] } });
+    }
+
+    // Inspector filter
+    if (inspectorId) {
+      conditions.push({ inspectorId });
+    }
+
+    // Client filter
+    if (clientId) {
+      conditions.push({ clientId });
     }
 
     // Search filter (case-insensitive across multiple fields)
@@ -43,6 +55,23 @@ export async function GET(request: NextRequest) {
     }
 
     const where: Prisma.WorkOrderWhereInput = conditions.length > 0 ? { AND: conditions } : {};
+
+    // Build base filter for status counts (search + inspector + client but NOT status)
+    const baseConditions: Prisma.WorkOrderWhereInput[] = [];
+    if (inspectorId) baseConditions.push({ inspectorId });
+    if (clientId) baseConditions.push({ clientId });
+    if (search) {
+      baseConditions.push({
+        OR: [
+          { orderNumber: { contains: search, mode: 'insensitive' } },
+          { address1: { contains: search, mode: 'insensitive' } },
+          { city: { contains: search, mode: 'insensitive' } },
+          { state: { contains: search, mode: 'insensitive' } },
+          { loanNumber: { contains: search, mode: 'insensitive' } },
+        ],
+      });
+    }
+    const baseWhere: Prisma.WorkOrderWhereInput = baseConditions.length > 0 ? { AND: baseConditions } : {};
 
     // Build orderBy
     let orderBy: Prisma.WorkOrderOrderByWithRelationInput;
@@ -77,29 +106,19 @@ export async function GET(request: NextRequest) {
           city: true,
           state: true,
           dueDate: true,
-          client: { select: { name: true, code: true } },
-          inspector: { select: { firstName: true, lastName: true } },
+          inspectorPay: true,
+          clientPay: true,
+          client: { select: { id: true, name: true, code: true } },
+          inspector: { select: { id: true, firstName: true, lastName: true } },
         },
       }),
       // Total matching count
       prisma.workOrder.count({ where }),
-      // Status counts (for filter pills — use search filter but not status filter)
+      // Status counts (for filter pills — use base filter but not status filter)
       prisma.workOrder.groupBy({
         by: ['status'],
         _count: true,
-        ...(search
-          ? {
-              where: {
-                OR: [
-                  { orderNumber: { contains: search, mode: 'insensitive' } },
-                  { address1: { contains: search, mode: 'insensitive' } },
-                  { city: { contains: search, mode: 'insensitive' } },
-                  { state: { contains: search, mode: 'insensitive' } },
-                  { loanNumber: { contains: search, mode: 'insensitive' } },
-                ],
-              },
-            }
-          : {}),
+        ...(baseConditions.length > 0 ? { where: baseWhere } : {}),
       }),
     ]);
 

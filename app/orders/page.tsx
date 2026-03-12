@@ -5,11 +5,17 @@ import OrderTable from '@/components/OrderTable';
 export default async function OrdersPage({ searchParams }: { searchParams: { q?: string; page?: string; status?: string; sort?: string; dir?: string } }) {
     const params = await searchParams;
 
-    const inspectors = await prisma.user.findMany({
-        where: { role: 'inspector' },
-        orderBy: { firstName: 'asc' },
-        select: { id: true, firstName: true, lastName: true },
-    });
+    const [inspectors, clients] = await Promise.all([
+        prisma.user.findMany({
+            where: { role: 'inspector' },
+            orderBy: { firstName: 'asc' },
+            select: { id: true, firstName: true, lastName: true },
+        }),
+        prisma.client.findMany({
+            orderBy: { name: 'asc' },
+            select: { id: true, name: true, code: true },
+        }),
+    ]);
 
     return (
         <div className="page-container">
@@ -25,6 +31,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: { q?:
 
             <OrderTable
                 inspectors={inspectors}
+                clients={clients}
                 initialSearch={params.q || ''}
                 initialPage={parseInt(params.page || '1')}
                 initialStatus={params.status || 'All'}

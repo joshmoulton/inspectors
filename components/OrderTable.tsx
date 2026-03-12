@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Search, ArrowUpDown, ClipboardList, Eye, CheckCircle, UserPlus, Loader2 } from 'lucide-react';
+import { Search, ArrowUpDown, ClipboardList, Eye, CheckCircle, UserPlus, Loader2, Filter, X } from 'lucide-react';
 import { updateOrderStatus } from '@/lib/actions';
 import { toast } from 'sonner';
 import Pagination from './Pagination';
@@ -20,14 +20,22 @@ interface Order {
     city: string | null;
     state: string | null;
     dueDate: string | Date | null;
-    client: { name: string; code: string | null } | null;
-    inspector: { firstName: string; lastName: string } | null;
+    inspectorPay: number | null;
+    clientPay: number | null;
+    client: { id: string; name: string; code: string | null } | null;
+    inspector: { id: string; firstName: string; lastName: string } | null;
 }
 
 interface Inspector {
     id: string;
     firstName: string;
     lastName: string;
+}
+
+interface ClientOption {
+    id: string;
+    name: string;
+    code: string | null;
 }
 
 interface ApiResponse {
@@ -44,6 +52,7 @@ const STATUS_FILTERS = ['All', 'Open', 'Completed', 'Unassigned', 'Cancelled', '
 
 interface OrderTableProps {
     inspectors?: Inspector[];
+    clients?: ClientOption[];
     initialSearch?: string;
     initialPage?: number;
     initialStatus?: string;
@@ -53,6 +62,7 @@ interface OrderTableProps {
 
 export default function OrderTable({
     inspectors = [],
+    clients = [],
     initialSearch = '',
     initialPage = 1,
     initialStatus = 'All',
@@ -71,12 +81,17 @@ export default function OrderTable({
     const [sortField, setSortField] = useState(initialSort);
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>(initialDir);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [filterInspector, setFilterInspector] = useState('');
+    const [filterClient, setFilterClient] = useState('');
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
     const abortRef = useRef<AbortController | null>(null);
+
+    const hasAdvancedFilters = filterInspector || filterClient;
 
     // Fetch orders from paginated API
     const fetchOrders = useCallback(async (
@@ -85,8 +100,9 @@ export default function OrderTable({
         searchQuery: string,
         sort: string,
         dir: string,
+        inspector: string,
+        client: string,
     ) => {
-        // Cancel any in-flight request
         if (abortRef.current) abortRef.current.abort();
         const controller = new AbortController();
         abortRef.current = controller;
@@ -101,6 +117,8 @@ export default function OrderTable({
                 sortField: sort,
                 sortDir: dir,
             });
+            if (inspector) params.set('inspector', inspector);
+            if (client) params.set('client', client);
 
             const res = await fetch(`/api/orders?${params}`, { signal: controller.signal });
             if (!res.ok) throw new Error('Failed to fetch');
@@ -125,17 +143,21 @@ export default function OrderTable({
         const status = searchParams.get('status') || 'All';
         const sort = searchParams.get('sort') || 'orderNumber';
         const dir = (searchParams.get('dir') as 'asc' | 'desc') || 'desc';
+        const inspector = searchParams.get('inspector') || '';
+        const client = searchParams.get('client') || '';
 
         setSearch(q);
         setCurrentPage(page);
         setStatusFilter(status);
         setSortField(sort);
         setSortDir(dir);
+        setFilterInspector(inspector);
+        setFilterClient(client);
+        if (inspector || client) setShowAdvancedFilters(true);
 
-        fetchOrders(page, status, q, sort, dir);
+        fetchOrders(page, status, q, sort, dir, inspector, client);
     }, [searchParams, fetchOrders]);
 
-    // Update URL params (without full page reload)
     function updateUrl(overrides: Record<string, string | number>) {
         const params = new URLSearchParams();
         const values = {
@@ -144,15 +166,18 @@ export default function OrderTable({
             search: search,
             sort: sortField,
             dir: sortDir,
+            inspector: filterInspector,
+            client: filterClient,
             ...Object.fromEntries(Object.entries(overrides).map(([k, v]) => [k, String(v)])),
         };
 
-        // Only add non-default params to keep URL clean
         if (values.page !== '1') params.set('page', values.page);
         if (values.status !== 'All') params.set('status', values.status);
         if (values.search) params.set('q', values.search);
         if (values.sort !== 'orderNumber') params.set('sort', values.sort);
         if (values.dir !== 'desc') params.set('dir', values.dir);
+        if (values.inspector) params.set('inspector', values.inspector);
+        if (values.client) params.set('client', values.client);
 
         const qs = params.toString();
         router.push(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
@@ -186,6 +211,22 @@ export default function OrderTable({
         updateUrl({ page });
     }
 
+    function handleInspectorFilter(id: string) {
+        setFilterInspector(id);
+        updateUrl({ inspector: id, page: 1 });
+    }
+
+    function handleClientFilter(id: string) {
+        setFilterClient(id);
+        updateUrl({ client: id, page: 1 });
+    }
+
+    function clearAdvancedFilters() {
+        setFilterInspector('');
+        setFilterClient('');
+        updateUrl({ inspector: '', client: '', page: 1 });
+    }
+
     const allSelected = orders.length > 0 && orders.every(o => selectedIds.has(o.id));
 
     function toggleSelectAll() {
@@ -209,7 +250,7 @@ export default function OrderTable({
             {/* Search + Filter Bar */}
             <div className="card" style={{ padding: 16, marginBottom: 16 }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
-                    <div className="search-input-wrapper">
+                    <div className="search-input-wrapper" style={{ flex: 1 }}>
                         <Search size={16} className="search-icon" />
                         <input
                             type="text"
@@ -220,10 +261,68 @@ export default function OrderTable({
                             aria-label="Search orders"
                         />
                     </div>
+                    <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                        style={{ position: 'relative' }}
+                    >
+                        <Filter size={14} /> Filters
+                        {hasAdvancedFilters && (
+                            <span style={{
+                                position: 'absolute', top: -4, right: -4,
+                                width: 8, height: 8, borderRadius: '50%',
+                                background: 'var(--brand-primary)',
+                            }} />
+                        )}
+                    </button>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
                         {loading ? '...' : `${totalItems.toLocaleString()} orders`}
                     </div>
                 </div>
+
+                {/* Advanced Filters */}
+                {showAdvancedFilters && (
+                    <div style={{
+                        display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12,
+                        padding: '12px 0', borderTop: '1px solid var(--border-subtle)',
+                    }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
+                            Filter by:
+                        </span>
+                        <select
+                            className="form-control"
+                            value={filterInspector}
+                            onChange={(e) => handleInspectorFilter(e.target.value)}
+                            style={{ maxWidth: 200, fontSize: 13, height: 32 }}
+                        >
+                            <option value="">All Inspectors</option>
+                            {inspectors.map(i => (
+                                <option key={i.id} value={i.id}>{i.firstName} {i.lastName}</option>
+                            ))}
+                        </select>
+                        <select
+                            className="form-control"
+                            value={filterClient}
+                            onChange={(e) => handleClientFilter(e.target.value)}
+                            style={{ maxWidth: 200, fontSize: 13, height: 32 }}
+                        >
+                            <option value="">All Clients</option>
+                            {clients.map(c => (
+                                <option key={c.id} value={c.id}>{c.name} {c.code ? `(${c.code})` : ''}</option>
+                            ))}
+                        </select>
+                        {hasAdvancedFilters && (
+                            <button
+                                className="btn btn-secondary btn-sm"
+                                onClick={clearAdvancedFilters}
+                                style={{ height: 32 }}
+                            >
+                                <X size={12} /> Clear
+                            </button>
+                        )}
+                    </div>
+                )}
+
                 <div className="filter-pills">
                     {STATUS_FILTERS.map((status) => (
                         <button
@@ -240,7 +339,6 @@ export default function OrderTable({
 
             {/* Table */}
             <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-                {/* Loading overlay */}
                 {loading && (
                     <div style={{
                         position: 'absolute', inset: 0, zIndex: 10,
@@ -280,13 +378,15 @@ export default function OrderTable({
                                         </th>
                                         <th>Address</th>
                                         <th>City</th>
-                                        <th>State</th>
+                                        <th>ST</th>
                                         <th onClick={() => handleSort('dueDate')} style={{ cursor: 'pointer' }}>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                Due Date <ArrowUpDown size={12} />
+                                                Due <ArrowUpDown size={12} />
                                             </span>
                                         </th>
                                         <th>Inspector</th>
+                                        <th style={{ textAlign: 'right' }}>Client $</th>
+                                        <th style={{ textAlign: 'right' }}>Insp $</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -306,26 +406,26 @@ export default function OrderTable({
                                             <td style={{ fontWeight: 700, color: 'var(--brand-primary-light)' }}>
                                                 <Link href={`/orders/${order.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{order.orderNumber}</Link>
                                             </td>
-                                            <td>{order.type}</td>
+                                            <td style={{ fontSize: 12 }}>{order.type}</td>
                                             <td>
                                                 <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                                     {order.client?.code || '---'}
                                                 </span>
                                             </td>
-                                            <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{order.address1}</td>
-                                            <td>{order.city}</td>
-                                            <td style={{ textAlign: 'center' }}>{order.state}</td>
+                                            <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13 }}>{order.address1}</td>
+                                            <td style={{ fontSize: 13 }}>{order.city}</td>
+                                            <td style={{ textAlign: 'center', fontSize: 12 }}>{order.state}</td>
                                             <td style={{ fontSize: 13 }}>
                                                 {order.dueDate ? new Date(order.dueDate).toLocaleDateString() : '---'}
                                             </td>
                                             <td>
                                                 {order.inspector ? (
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                                         <div style={{
-                                                            width: 24, height: 24, borderRadius: '50%',
+                                                            width: 22, height: 22, borderRadius: '50%',
                                                             background: 'rgba(99, 102, 241, 0.2)',
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                            fontSize: 10, fontWeight: 700, color: 'var(--brand-primary-light)'
+                                                            fontSize: 9, fontWeight: 700, color: 'var(--brand-primary-light)'
                                                         }}>
                                                             {order.inspector.firstName[0]}{order.inspector.lastName[0]}
                                                         </div>
@@ -334,6 +434,12 @@ export default function OrderTable({
                                                 ) : (
                                                     <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Unassigned</span>
                                                 )}
+                                            </td>
+                                            <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--status-success)' }}>
+                                                {order.clientPay ? `$${order.clientPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : <span style={{ color: 'var(--text-tertiary)' }}>—</span>}
+                                            </td>
+                                            <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--status-info)' }}>
+                                                {order.inspectorPay ? `$${order.inspectorPay.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : <span style={{ color: 'var(--text-tertiary)' }}>—</span>}
                                             </td>
                                             <td>
                                                 <span className={`badge badge-${getStatusColor(order.status)}`}>
