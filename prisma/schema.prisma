@@ -23,6 +23,7 @@ model User {
   reviewedOrders  WorkOrder[] @relation("QCOrders")
   comments        Comment[]
   events          Event[]
+  zipAssignments  ZipAssignment[]
 }
 
 model Client {
@@ -212,4 +213,18 @@ model HistoryEntry {
   orderId   String
   order     WorkOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+}
+
+model ZipAssignment {
+  id          String   @id @default(cuid())
+  zip         String
+  inspectorId String
+  inspector   User     @relation(fields: [inspectorId], references: [id])
+  priority    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([zip, inspectorId])
+  @@index([zip])
+  @@index([inspectorId])
 }

@@ -7,7 +7,7 @@ import { signOut } from 'next-auth/react';
 import {
     LayoutDashboard, ClipboardList, Upload, Users, Building2, BookUser,
     BarChart3, Map, Wrench, Settings, FileText, Headphones, LogOut,
-    PanelLeftClose, PanelLeft, Menu, X, User, ChevronDown, Search
+    PanelLeftClose, PanelLeft, Menu, X, User, ChevronDown, Search, MapPinned
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import DropdownMenu from './DropdownMenu';
@@ -23,6 +23,7 @@ const navItems = [
     { label: 'Clients', icon: Building2, href: '/clients', badge: null },
     { label: 'Contacts', icon: BookUser, href: '/contacts', badge: null },
     { section: 'Operations' },
+    { label: 'Zip Zones', icon: MapPinned, href: '/zip-zones', badge: null },
     { label: 'Reports', icon: BarChart3, href: '/reports', badge: null },
     { label: 'Routes', icon: Map, href: '/routes', badge: null },
     { label: 'Resources', icon: Wrench, href: '/resources', badge: null },

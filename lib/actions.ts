@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { findInspectorForZip } from '@/lib/autoAssign';
 
 export async function createOrder(formData: FormData) {
     const orderNumber = formData.get('orderNumber') as string;
@@ -14,7 +15,7 @@ export async function createOrder(formData: FormData) {
     const city = formData.get('city') as string;
     const state = formData.get('state') as string;
     const zip = formData.get('zip') as string;
-    const inspectorId = formData.get('inspectorId') as string || null;
+    let inspectorId = formData.get('inspectorId') as string || null;
     const dueDate = formData.get('dueDate') as string;
     const inspectorPay = Math.max(0, parseFloat(formData.get('inspectorPay') as string) || 0);
     const clientPay = Math.max(0, parseFloat(formData.get('clientPay') as string) || 0);
@@ -22,6 +23,16 @@ export async function createOrder(formData: FormData) {
 
     if (!orderNumber?.trim() || !clientId?.trim() || !address1?.trim() || !city?.trim() || !state?.trim() || !zip?.trim()) {
         throw new Error('Missing required fields');
+    }
+
+    // Auto-assign inspector by zip code if none manually selected
+    let autoAssigned = false;
+    if (!inspectorId || inspectorId === '') {
+        const autoId = await findInspectorForZip(zip);
+        if (autoId) {
+            inspectorId = autoId;
+            autoAssigned = true;
+        }
     }
 
     try {
@@ -45,10 +56,14 @@ export async function createOrder(formData: FormData) {
             },
         });
 
+        const historyDetails = autoAssigned
+            ? `Order created and auto-assigned to inspector by zip code ${zip}`
+            : `Order created by system`;
+
         await prisma.historyEntry.create({
             data: {
-                action: 'Order Created',
-                details: `Order created by system`,
+                action: autoAssigned ? 'Order Created (Auto-Assigned)' : 'Order Created',
+                details: historyDetails,
                 orderId: order.id,
             },
         });
