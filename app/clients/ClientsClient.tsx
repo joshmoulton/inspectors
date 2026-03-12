@@ -62,16 +62,21 @@ export default function ClientsClient({ clients }: { clients: ClientData[] }) {
                     <tbody>
                         {filtered.map((client) => (
                             <tr key={client.id}>
-                                <td style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <div style={{
-                                        width: 30, height: 30, borderRadius: 'var(--radius-sm)',
-                                        background: 'rgba(99, 102, 241, 0.1)',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        flexShrink: 0
+                                <td style={{ fontWeight: 600 }}>
+                                    <Link href={`/clients/${client.id}`} style={{
+                                        display: 'flex', alignItems: 'center', gap: 10,
+                                        textDecoration: 'none', color: 'inherit',
                                     }}>
-                                        <Building2 size={14} style={{ color: 'var(--brand-primary-light)' }} />
-                                    </div>
-                                    {client.name}
+                                        <div style={{
+                                            width: 30, height: 30, borderRadius: 'var(--radius-sm)',
+                                            background: 'rgba(99, 102, 241, 0.1)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            flexShrink: 0
+                                        }}>
+                                            <Building2 size={14} style={{ color: 'var(--brand-primary-light)' }} />
+                                        </div>
+                                        {client.name}
+                                    </Link>
                                 </td>
                                 <td>
                                     <span style={{
