@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Search, ClipboardList, Users, Building2, BookUser,
-    LayoutDashboard, Upload, BarChart3, Map, ArrowRight, X
+    LayoutDashboard, Upload, BarChart3, Map, MapPinned, ArrowRight, X
 } from 'lucide-react';
 
 interface SearchResult {
@@ -26,6 +26,7 @@ const quickActions = [
     { label: 'Import CSV', icon: Upload, href: '/import', keywords: 'import csv upload' },
     { label: 'Reports', icon: BarChart3, href: '/reports', keywords: 'reports analytics' },
     { label: 'Route Map', icon: Map, href: '/routes', keywords: 'map routes locations' },
+    { label: 'Zip Zones', icon: MapPinned, href: '/zip-zones', keywords: 'zip zones auto assign' },
 ];
 
 const typeIcons: Record<string, typeof ClipboardList> = {

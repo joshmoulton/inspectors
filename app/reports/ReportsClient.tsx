@@ -22,6 +22,7 @@ interface ReportsClientProps {
     inspectorCoverage: number;
     totalRevenue: number;
     totalProfit: number;
+    payrollData: { name: string; id: string; completedOrders: number; totalOwed: number; paidOrders: number; totalPaid: number }[];
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -39,9 +40,9 @@ const PIE_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4
 
 export default function ReportsClient({
     orderStats, clientStats, inspectorStats, monthlyData,
-    totalOrders, avgTurnaround, approvalRate, inspectorCoverage, totalRevenue, totalProfit,
+    totalOrders, avgTurnaround, approvalRate, inspectorCoverage, totalRevenue, totalProfit, payrollData,
 }: ReportsClientProps) {
-    const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'inspectors' | 'financial'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'inspectors' | 'financial' | 'payroll'>('overview');
 
     function handleExportCSV() {
         const rows = [['Status', 'Count']];
@@ -105,7 +106,7 @@ export default function ReportsClient({
                         <DollarSign size={22} />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">${(totalRevenue / 1000).toFixed(1)}K</div>
+                        <div className="stat-value">${totalRevenue.toLocaleString()}</div>
                         <div className="stat-label">Total Revenue</div>
                     </div>
                 </div>
@@ -113,7 +114,7 @@ export default function ReportsClient({
 
             {/* Tab bar */}
             <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: 'var(--bg-surface)', padding: 4, borderRadius: 10, width: 'fit-content' }}>
-                {(['overview', 'clients', 'inspectors', 'financial'] as const).map(tab => (
+                {(['overview', 'clients', 'inspectors', 'financial', 'payroll'] as const).map(tab => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -199,7 +200,7 @@ export default function ReportsClient({
                                     <div key={s.status} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
                                         <div style={{ width: 8, height: 8, borderRadius: 2, background: PIE_COLORS[i % PIE_COLORS.length] }} />
                                         <span style={{ color: 'var(--text-tertiary)' }}>{s.status}</span>
-                                        <span style={{ fontWeight: 700, fontFamily: 'monospace' }}>{s._count}</span>
+                                        <span style={{ fontWeight: 700, fontFamily: 'monospace' }}>{s._count.toLocaleString()}</span>
                                     </div>
                                 ))}
                             </div>
@@ -318,7 +319,7 @@ export default function ReportsClient({
                                 <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                                     <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} />
-                                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v.toLocaleString()}`} />
                                     <Tooltip
                                         contentStyle={{
                                             backgroundColor: 'rgba(15, 23, 42, 0.95)',
@@ -352,7 +353,7 @@ export default function ReportsClient({
                                 {monthlyData.map(m => (
                                     <tr key={m.month}>
                                         <td style={{ fontWeight: 600 }}>{m.month}</td>
-                                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{m.count}</td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{m.count.toLocaleString()}</td>
                                         <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--status-success)' }}>${m.revenue.toLocaleString()}</td>
                                         <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--text-tertiary)' }}>
                                             ${m.count > 0 ? (m.revenue / m.count).toFixed(2) : '0.00'}
@@ -389,9 +390,9 @@ export default function ReportsClient({
                                 return (
                                     <tr key={insp.name}>
                                         <td style={{ fontWeight: 600 }}>{insp.name}</td>
-                                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{insp.total}</td>
-                                        <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--status-warning)' }}>{insp.open}</td>
-                                        <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--status-success)' }}>{insp.completed}</td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{insp.total.toLocaleString()}</td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--status-warning)' }}>{insp.open.toLocaleString()}</td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--status-success)' }}>{insp.completed.toLocaleString()}</td>
                                         <td style={{ textAlign: 'right' }}>
                                             <span style={{
                                                 fontWeight: 700, fontSize: 12,
@@ -414,6 +415,107 @@ export default function ReportsClient({
                         </tbody>
                     </table>
                 </div>
+            )}
+
+            {activeTab === 'payroll' && (
+                <>
+                    {/* Payroll Summary Cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+                        <div className="card" style={{ padding: 24, textAlign: 'center' }}>
+                            <div style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 6 }}>Total Owed (Unpaid)</div>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--status-warning)' }}>
+                                ${payrollData.reduce((s, i) => s + i.totalOwed, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </div>
+                        </div>
+                        <div className="card" style={{ padding: 24, textAlign: 'center' }}>
+                            <div style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 6 }}>Total Paid</div>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--status-success)' }}>
+                                ${payrollData.reduce((s, i) => s + i.totalPaid, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </div>
+                        </div>
+                        <div className="card" style={{ padding: 24, textAlign: 'center' }}>
+                            <div style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: 6 }}>Inspectors with Balance</div>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--brand-primary-light)' }}>
+                                {payrollData.filter(i => i.totalOwed > 0).length}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Payroll Table */}
+                    <div className="card" style={{ overflow: 'hidden' }}>
+                        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 style={{ fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <DollarSign size={18} /> Contractor Payment Summary
+                            </h3>
+                            <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                                {payrollData.length} inspectors
+                            </span>
+                        </div>
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Inspector</th>
+                                    <th style={{ textAlign: 'right' }}>Completed Orders</th>
+                                    <th style={{ textAlign: 'right' }}>Amount Owed</th>
+                                    <th style={{ textAlign: 'right' }}>Paid Orders</th>
+                                    <th style={{ textAlign: 'right' }}>Amount Paid</th>
+                                    <th style={{ textAlign: 'right' }}>Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {payrollData.map((insp) => (
+                                    <tr key={insp.id}>
+                                        <td style={{ fontWeight: 600 }}>{insp.name}</td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>
+                                            {insp.completedOrders.toLocaleString()}
+                                        </td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--status-warning)', fontWeight: 600 }}>
+                                            ${insp.totalOwed.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                        </td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>
+                                            {insp.paidOrders.toLocaleString()}
+                                        </td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--status-success)' }}>
+                                            ${insp.totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                        </td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: insp.totalOwed > 0 ? 'var(--status-danger)' : 'var(--status-success)' }}>
+                                            ${insp.totalOwed.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {payrollData.length === 0 && (
+                                    <tr>
+                                        <td colSpan={6} style={{ textAlign: 'center', padding: 48, color: 'var(--text-tertiary)' }}>
+                                            No payroll data available.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                            {payrollData.length > 0 && (
+                                <tfoot>
+                                    <tr style={{ fontWeight: 700, borderTop: '2px solid var(--border-default)' }}>
+                                        <td>Total</td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>
+                                            {payrollData.reduce((s, i) => s + i.completedOrders, 0).toLocaleString()}
+                                        </td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--status-warning)' }}>
+                                            ${payrollData.reduce((s, i) => s + i.totalOwed, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                        </td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>
+                                            {payrollData.reduce((s, i) => s + i.paidOrders, 0).toLocaleString()}
+                                        </td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--status-success)' }}>
+                                            ${payrollData.reduce((s, i) => s + i.totalPaid, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                        </td>
+                                        <td style={{ textAlign: 'right', fontFamily: 'monospace', color: 'var(--status-danger)' }}>
+                                            ${payrollData.reduce((s, i) => s + i.totalOwed, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            )}
+                        </table>
+                    </div>
+                </>
             )}
         </div>
     );

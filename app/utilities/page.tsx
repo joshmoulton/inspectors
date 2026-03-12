@@ -116,8 +116,10 @@ export default function UtilitiesPage() {
                         </div>
                         <div className="setting-row" style={{ padding: '16px 24px' }}>
                             <div className="setting-info">
-                                <div className="setting-label">Auto-assign Inspector</div>
-                                <div className="setting-description">Automatically assign the nearest available inspector</div>
+                                <div className="setting-label">Auto-assign Inspector by Zip Zone</div>
+                                <div className="setting-description">
+                                    Automatically assign inspectors based on <a href="/zip-zones" style={{ color: 'var(--brand-primary-light)' }}>zip zone assignments</a>. Higher-priority inspectors are preferred; ties are broken by workload.
+                                </div>
                             </div>
                             <label className="toggle-switch">
                                 <input type="checkbox" checked={settings.autoAssign} onChange={e => updateSetting('autoAssign', e.target.checked)} />

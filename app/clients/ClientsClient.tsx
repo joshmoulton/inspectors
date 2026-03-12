@@ -62,16 +62,21 @@ export default function ClientsClient({ clients }: { clients: ClientData[] }) {
                     <tbody>
                         {filtered.map((client) => (
                             <tr key={client.id}>
-                                <td style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <div style={{
-                                        width: 30, height: 30, borderRadius: 'var(--radius-sm)',
-                                        background: 'rgba(99, 102, 241, 0.1)',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        flexShrink: 0
+                                <td style={{ fontWeight: 600 }}>
+                                    <Link href={`/clients/${client.id}`} style={{
+                                        display: 'flex', alignItems: 'center', gap: 10,
+                                        textDecoration: 'none', color: 'inherit',
                                     }}>
-                                        <Building2 size={14} style={{ color: 'var(--brand-primary-light)' }} />
-                                    </div>
-                                    {client.name}
+                                        <div style={{
+                                            width: 30, height: 30, borderRadius: 'var(--radius-sm)',
+                                            background: 'rgba(99, 102, 241, 0.1)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            flexShrink: 0
+                                        }}>
+                                            <Building2 size={14} style={{ color: 'var(--brand-primary-light)' }} />
+                                        </div>
+                                        {client.name}
+                                    </Link>
                                 </td>
                                 <td>
                                     <span style={{
@@ -83,13 +88,13 @@ export default function ClientsClient({ clients }: { clients: ClientData[] }) {
                                 <td style={{ textAlign: 'center' }}>
                                     {client.orderCount > 0 ? (
                                         <Link href={`/orders?client=${client.id}`} style={{ fontFamily: 'monospace', color: 'var(--brand-primary-light)', textDecoration: 'none' }}>
-                                            {client.orderCount}
+                                            {client.orderCount.toLocaleString()}
                                         </Link>
                                     ) : (
                                         <span style={{ fontFamily: 'monospace', color: 'var(--text-tertiary)' }}>0</span>
                                     )}
                                 </td>
-                                <td style={{ textAlign: 'center', fontFamily: 'monospace' }}>{client.loginCount}</td>
+                                <td style={{ textAlign: 'center', fontFamily: 'monospace' }}>{client.loginCount.toLocaleString()}</td>
                                 <td>
                                     <div style={{ display: 'flex', gap: 6 }}>
                                         <button className="btn btn-secondary btn-sm" onClick={() => setSettingsClient(client)}>
@@ -141,11 +146,11 @@ export default function ClientsClient({ clients }: { clients: ClientData[] }) {
 
                         <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
                             <div style={{ flex: 1, padding: 16, borderRadius: 'var(--radius-md)', background: 'rgba(99, 102, 241, 0.06)', border: '1px solid rgba(99, 102, 241, 0.1)', textAlign: 'center' }}>
-                                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--brand-primary-light)' }}>{settingsClient.orderCount}</div>
+                                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--brand-primary-light)' }}>{settingsClient.orderCount.toLocaleString()}</div>
                                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Orders</div>
                             </div>
                             <div style={{ flex: 1, padding: 16, borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.1)', textAlign: 'center' }}>
-                                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--status-success)' }}>{settingsClient.loginCount}</div>
+                                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--status-success)' }}>{settingsClient.loginCount.toLocaleString()}</div>
                                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Portal Logins</div>
                             </div>
                         </div>
@@ -158,7 +163,7 @@ export default function ClientsClient({ clients }: { clients: ClientData[] }) {
                                 onClick={() => setSettingsClient(null)}
                             >
                                 <ClipboardList size={16} /> View Orders
-                                <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-tertiary)' }}>{settingsClient.orderCount}</span>
+                                <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-tertiary)' }}>{settingsClient.orderCount.toLocaleString()}</span>
                             </Link>
                         </div>
 

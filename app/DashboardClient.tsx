@@ -25,6 +25,7 @@ interface DashboardClientProps {
         openOrders: number;
         completedOrders: number;
         pendingQC: number;
+        unassigned: number;
     };
     recentOrders: any[];
     chartData: { name: string; orders: number }[];
@@ -36,6 +37,7 @@ interface DashboardClientProps {
 const statConfig = [
     { key: 'totalOrders', label: 'Total Orders', icon: ClipboardList, color: 'var(--brand-primary-light)', bg: 'rgba(99, 102, 241, 0.12)' },
     { key: 'openOrders', label: 'Open Orders', icon: Clock, color: 'var(--status-warning)', bg: 'rgba(245, 158, 11, 0.12)' },
+    { key: 'unassigned', label: 'Unassigned', icon: UserCheck, color: 'var(--status-danger)', bg: 'rgba(239, 68, 68, 0.12)' },
     { key: 'completedOrders', label: 'Completed', icon: CheckCircle, color: 'var(--status-success)', bg: 'rgba(16, 185, 129, 0.12)' },
     { key: 'pendingQC', label: 'Pending QC', icon: AlertTriangle, color: 'var(--status-info)', bg: 'rgba(59, 130, 246, 0.12)' },
 ];
@@ -75,7 +77,7 @@ export default function DashboardClient({ stats, recentOrders, chartData, recent
                             </div>
                             <div className="stat-content">
                                 <div className="stat-value" style={{ color: stat.key === 'totalOrders' ? 'var(--text-primary)' : stat.color }}>
-                                    {value}
+                                    {value.toLocaleString()}
                                 </div>
                                 <div className="stat-label">{stat.label}</div>
                             </div>
@@ -288,7 +290,7 @@ export default function DashboardClient({ stats, recentOrders, chartData, recent
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                                     <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} />
-                                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => v.toLocaleString()} />
                                     <Tooltip
                                         contentStyle={{
                                             backgroundColor: 'rgba(15, 23, 42, 0.95)',

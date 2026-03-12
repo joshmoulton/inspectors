@@ -158,7 +158,7 @@ export default function CustomFormsClient() {
                         <FileText size={22} />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">{templates.reduce((s, f) => s + f.uses, 0)}</div>
+                        <div className="stat-value">{templates.reduce((s, f) => s + f.uses, 0).toLocaleString()}</div>
                         <div className="stat-label">Total Submissions</div>
                     </div>
                 </div>

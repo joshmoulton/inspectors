@@ -12,6 +12,7 @@ export default async function ReportsPage() {
     let totalRevenue = 0;
     let totalProfit = 0;
     let inspectorCoverage = 0;
+    let payrollData: { name: string; id: string; completedOrders: number; totalOwed: number; paidOrders: number; totalPaid: number }[] = [];
 
     try {
         const [stats, clients, allInspectors, completedOrders, paidOrders] = await Promise.all([
@@ -101,6 +102,43 @@ export default async function ReportsPage() {
         }
         monthlyData = Object.entries(monthBuckets).map(([month, data]) => ({ month, count: data.count, revenue: Math.round(data.revenue) }));
 
+        // Payroll: what each inspector is owed for completed (unpaid) vs paid orders
+        const inspectorsWithPay = await prisma.user.findMany({
+            where: { role: 'inspector' },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                assignedOrders: {
+                    where: { status: { in: ['Completed Pending Approval', 'Completed Approved', 'Completed Rejected', 'Submitted to Client'] } },
+                    select: { inspectorPay: true },
+                },
+            },
+        });
+        const paidByInspector = await prisma.user.findMany({
+            where: { role: 'inspector' },
+            select: {
+                id: true,
+                assignedOrders: {
+                    where: { status: 'Paid' },
+                    select: { inspectorPay: true },
+                },
+            },
+        });
+        const paidMap = new Map(paidByInspector.map(i => [i.id, i.assignedOrders]));
+
+        payrollData = inspectorsWithPay.map(i => {
+            const paidOrders = paidMap.get(i.id) || [];
+            return {
+                id: i.id,
+                name: `${i.firstName} ${i.lastName}`,
+                completedOrders: i.assignedOrders.length,
+                totalOwed: Math.round(i.assignedOrders.reduce((s, o) => s + (o.inspectorPay || 0), 0) * 100) / 100,
+                paidOrders: paidOrders.length,
+                totalPaid: Math.round(paidOrders.reduce((s, o) => s + (o.inspectorPay || 0), 0) * 100) / 100,
+            };
+        }).filter(i => i.completedOrders > 0 || i.paidOrders > 0).sort((a, b) => b.totalOwed - a.totalOwed);
+
     } catch (e) {
         console.error('Reports error:', e);
     }
@@ -119,6 +157,7 @@ export default async function ReportsPage() {
             inspectorCoverage={inspectorCoverage}
             totalRevenue={totalRevenue}
             totalProfit={totalProfit}
+            payrollData={payrollData}
         />
     );
 }

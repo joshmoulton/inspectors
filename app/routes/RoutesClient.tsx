@@ -110,7 +110,7 @@ export default function RoutesClient({ inspectors, orderLocations }: {
                         <MapPin size={22} />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">{totalOpenOrders}</div>
+                        <div className="stat-value">{totalOpenOrders.toLocaleString()}</div>
                         <div className="stat-label">Active Stops</div>
                     </div>
                 </div>
@@ -137,7 +137,7 @@ export default function RoutesClient({ inspectors, orderLocations }: {
                         <Navigation size={22} />
                     </div>
                     <div className="stat-content">
-                        <div className="stat-value">{filteredLocations.filter(o => o.latitude).length}</div>
+                        <div className="stat-value">{filteredLocations.filter(o => o.latitude).length.toLocaleString()}</div>
                         <div className="stat-label">Mapped Locations</div>
                     </div>
                 </div>
