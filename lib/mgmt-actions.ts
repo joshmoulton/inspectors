@@ -34,6 +34,28 @@ export async function createUser(formData: FormData) {
     redirect('/users');
 }
 
+export async function updateUser(id: string, formData: FormData) {
+    const email = formData.get('email') as string;
+    const firstName = formData.get('firstName') as string;
+    const lastName = formData.get('lastName') as string;
+    const role = formData.get('role') as string;
+    const phone = formData.get('phone') as string;
+    const active = formData.get('active') === 'true';
+
+    try {
+        await prisma.user.update({
+            where: { id },
+            data: { email, firstName, lastName, role, phone, active },
+        });
+        revalidatePath('/users');
+        revalidatePath(`/users/${id}`);
+    } catch (error) {
+        console.error('Failed to update user:', error);
+        throw new Error('Failed to update user');
+    }
+    redirect(`/users/${id}`);
+}
+
 export async function createClient(formData: FormData) {
     const name = formData.get('name') as string;
     const code = formData.get('code') as string;

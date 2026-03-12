@@ -156,6 +156,9 @@ export default async function InspectorDetailPage({ params }: { params: { id: st
                 </div>
 
                 <div style={{ display: 'flex', gap: 8 }}>
+                    <Link href={`/users/${id}/edit`} className="btn btn-secondary">
+                        Edit Profile
+                    </Link>
                     <Link href="/routes" className="btn btn-secondary">
                         <Map size={14} /> View on Map
                     </Link>
