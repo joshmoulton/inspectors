@@ -3044,6 +3044,33 @@ textarea.form-control {
   .stat-label, .stat-icon {
     color: #555 !important;
   }
+
+  .grid-sidebar-right {
+    display: block !important;
+  }
+
+  .grid-sidebar-right > * {
+    margin-bottom: 16px !important;
+  }
+
+  .stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .status-stepper {
+    border: 1px solid #ddd !important;
+    break-inside: avoid;
+  }
+
+  .tab-content > [style*="display: none"] {
+    display: none !important;
+  }
+
+  .breadcrumbs {
+    display: none !important;
+  }
 }
 
 /* Copy feedback animation */

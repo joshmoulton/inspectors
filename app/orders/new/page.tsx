@@ -4,6 +4,7 @@ import { createOrder } from '@/lib/actions';
 import { INSPECTION_TYPES } from '@/lib/types';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import SubmitButton from '@/components/SubmitButton';
+import ZipInspectorHint from '@/components/ZipInspectorHint';
 import { FileText, MapPin, UserCheck, ClipboardList } from 'lucide-react';
 
 export default async function NewOrderPage() {
@@ -111,9 +112,10 @@ export default async function NewOrderPage() {
                         <div className="form-field">
                             <label className="form-label">Assign Inspector</label>
                             <select name="inspectorId" className="form-control">
-                                <option value="">Unassigned</option>
+                                <option value="">Unassigned (auto-assign by zip)</option>
                                 {inspectors.map((i: any) => <option key={i.id} value={i.id}>{i.firstName} {i.lastName}</option>)}
                             </select>
+                            <ZipInspectorHint />
                         </div>
                         <div className="form-field">
                             <label className="form-label">Due Date <span className="required">*</span></label>

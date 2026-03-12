@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Search, ArrowUpDown, ClipboardList, Eye, CheckCircle, UserPlus, Loader2, Filter, X } from 'lucide-react';
+import { Search, ArrowUpDown, ClipboardList, Eye, CheckCircle, UserPlus, Loader2, Filter, X, Download } from 'lucide-react';
 import { updateOrderStatus } from '@/lib/actions';
 import { toast } from 'sonner';
 import Pagination from './Pagination';
@@ -274,6 +274,38 @@ export default function OrderTable({
                                 background: 'var(--brand-primary)',
                             }} />
                         )}
+                    </button>
+                    <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                            const csv = ['Order #,Type,Status,Address,City,State,Client,Inspector,Due Date,Client Pay,Inspector Pay'];
+                            for (const o of orders) {
+                                csv.push([
+                                    o.orderNumber,
+                                    o.type,
+                                    o.status,
+                                    `"${(o.address1 || '').replace(/"/g, '""')}"`,
+                                    o.city || '',
+                                    o.state || '',
+                                    `"${(o.client?.name || '').replace(/"/g, '""')}"`,
+                                    o.inspector ? `"${o.inspector.firstName} ${o.inspector.lastName}"` : '',
+                                    o.dueDate ? new Date(o.dueDate).toLocaleDateString() : '',
+                                    o.clientPay?.toFixed(2) || '0.00',
+                                    o.inspectorPay?.toFixed(2) || '0.00',
+                                ].join(','));
+                            }
+                            const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `orders-${statusFilter.toLowerCase()}-${new Date().toISOString().split('T')[0]}.csv`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                            toast.success(`Exported ${orders.length} orders to CSV`);
+                        }}
+                        title="Export current view to CSV"
+                    >
+                        <Download size={14} /> Export
                     </button>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
                         {loading ? '...' : `${totalItems.toLocaleString()} orders`}
