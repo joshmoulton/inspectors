@@ -3,13 +3,14 @@ import DashboardClient from './DashboardClient';
 import { Suspense } from 'react';
 
 async function getStats() {
-  const [totalOrders, openOrders, completedOrders, pendingQC] = await Promise.all([
+  const [totalOrders, openOrders, completedOrders, pendingQC, unassigned] = await Promise.all([
     prisma.workOrder.count(),
     prisma.workOrder.count({ where: { status: 'Open' } }),
     prisma.workOrder.count({ where: { status: { contains: 'Completed' } } }),
     prisma.workOrder.count({ where: { status: 'Completed Pending Approval' } }),
+    prisma.workOrder.count({ where: { status: 'Unassigned' } }),
   ]);
-  return { totalOrders, openOrders, completedOrders, pendingQC };
+  return { totalOrders, openOrders, completedOrders, pendingQC, unassigned };
 }
 
 async function getChartData() {
