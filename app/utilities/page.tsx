@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Settings, Bell, Database, Globe, Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Papa from 'papaparse';
@@ -18,7 +18,7 @@ const DEFAULT_SETTINGS = {
     notificationEmail: 'admin@powerade.io',
 };
 
-function loadSettings() {
+function loadLocalSettings() {
     if (typeof window === 'undefined') return DEFAULT_SETTINGS;
     try {
         const saved = localStorage.getItem('powerade-settings');
@@ -26,18 +26,65 @@ function loadSettings() {
     } catch { return DEFAULT_SETTINGS; }
 }
 
-export default function UtilitiesPage() {
-    const [settings, setSettings] = useState(loadSettings);
-    const [dirty, setDirty] = useState(false);
+function parseSettingsFromApi(data: Record<string, string>) {
+    const result = { ...DEFAULT_SETTINGS };
+    for (const [key, value] of Object.entries(data)) {
+        if (key in result) {
+            const defaultVal = (result as any)[key];
+            if (typeof defaultVal === 'boolean') {
+                (result as any)[key] = value === 'true';
+            } else {
+                (result as any)[key] = value;
+            }
+        }
+    }
+    return result;
+}
 
-    function handleSave(e: React.FormEvent) {
+export default function UtilitiesPage() {
+    const [settings, setSettings] = useState(loadLocalSettings);
+    const [dirty, setDirty] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    // Load from API on mount (overrides localStorage)
+    useEffect(() => {
+        fetch('/api/settings')
+            .then(r => r.json())
+            .then(data => {
+                if (data && Object.keys(data).length > 0) {
+                    const merged = parseSettingsFromApi(data);
+                    setSettings(merged);
+                    localStorage.setItem('powerade-settings', JSON.stringify(merged));
+                }
+            })
+            .catch(() => { /* fall back to localStorage */ });
+    }, []);
+
+    async function handleSave(e: React.FormEvent) {
         e.preventDefault();
+        setSaving(true);
         try {
+            // Save to API (primary) and localStorage (cache)
+            const apiData: Record<string, string> = {};
+            for (const [key, value] of Object.entries(settings)) {
+                apiData[key] = String(value);
+            }
+            const res = await fetch('/api/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(apiData),
+            });
+            if (!res.ok) throw new Error('API save failed');
             localStorage.setItem('powerade-settings', JSON.stringify(settings));
             setDirty(false);
             toast.success('Settings saved successfully');
         } catch {
-            toast.error('Failed to save settings');
+            // Fallback to localStorage only
+            localStorage.setItem('powerade-settings', JSON.stringify(settings));
+            setDirty(false);
+            toast.success('Settings saved locally');
+        } finally {
+            setSaving(false);
         }
     }
 
@@ -54,8 +101,8 @@ export default function UtilitiesPage() {
                     <p className="page-subtitle">Configure system preferences and manage application settings.</p>
                 </div>
                 <div className="header-actions">
-                    <button className={`btn ${dirty ? 'btn-primary' : 'btn-secondary'}`} onClick={handleSave} disabled={!dirty}>
-                        <Save size={16} /> {dirty ? 'Save Changes' : 'Saved'}
+                    <button className={`btn ${dirty ? 'btn-primary' : 'btn-secondary'}`} onClick={handleSave} disabled={!dirty || saving}>
+                        {saving ? <><Loader2 size={14} className="spin" /> Saving...</> : <><Save size={16} /> {dirty ? 'Save Changes' : 'Saved'}</>}
                     </button>
                 </div>
             </header>

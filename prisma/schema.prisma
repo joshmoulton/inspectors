@@ -139,8 +139,9 @@ model WorkOrder {
 
   comments    Comment[]
   events      Event[]
-  attachments Attachment[]
-  history     HistoryEntry[]
+  attachments     Attachment[]
+  history         HistoryEntry[]
+  formSubmissions FormSubmission[]
 
   @@index([status])
   @@index([orderNumber])
@@ -227,4 +228,32 @@ model ZipAssignment {
   @@unique([zip, inspectorId])
   @@index([zip])
   @@index([inspectorId])
+}
+
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+}
+
+model FormTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @default("")
+  fields      Json
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  submissions FormSubmission[]
+}
+
+model FormSubmission {
+  id          String        @id @default(cuid())
+  templateId  String
+  template    FormTemplate  @relation(fields: [templateId], references: [id])
+  orderId     String
+  order       WorkOrder     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  data        Json          @default("{}")
+  completedAt DateTime?
+  createdAt   DateTime      @default(now())
 }
