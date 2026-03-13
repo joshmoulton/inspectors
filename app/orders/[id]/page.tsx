@@ -7,6 +7,7 @@ import PhotoUpload from '@/components/PhotoUpload';
 import StatusStepper from '@/components/StatusStepper';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import OrderDetailActions from './OrderDetailActions';
+import OrderFormsTab from './OrderFormsTab';
 import CopyButton from '@/components/CopyButton';
 import {
     MapPin, Phone, Building2, DollarSign, Calendar, User, Shield,
@@ -25,6 +26,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
             comments: { include: { author: true }, orderBy: { createdAt: 'desc' } },
             history: { orderBy: { createdAt: 'desc' } },
             attachments: true,
+            formSubmissions: { include: { template: true }, orderBy: { createdAt: 'desc' } },
         },
     });
 
@@ -38,6 +40,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
 
     const tabs = [
         { id: 'overview', label: 'Overview' },
+        { id: 'forms', label: 'Forms', count: order.formSubmissions.length },
         { id: 'photos', label: 'Photos', count: order.attachments.length },
         { id: 'comments', label: 'Comments', count: order.comments.length },
         { id: 'history', label: 'History', count: order.history.length },
@@ -287,6 +290,20 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                             </div>
                         )}
                     </div>
+                </div>
+
+                {/* Forms Tab */}
+                <div key="forms">
+                    <OrderFormsTab
+                        orderId={order.id}
+                        submissions={order.formSubmissions.map((s: any) => ({
+                            id: s.id,
+                            templateId: s.templateId,
+                            templateName: s.template.name,
+                            completedAt: s.completedAt?.toISOString() || null,
+                            createdAt: s.createdAt.toISOString(),
+                        }))}
+                    />
                 </div>
 
                 {/* Photos Tab */}

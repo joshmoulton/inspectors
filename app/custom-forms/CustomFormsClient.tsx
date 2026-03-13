@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileText, Plus, Eye, Edit, Copy, Trash2, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import FormBuilder, { type FormField } from '@/components/FormBuilder';
@@ -55,53 +55,111 @@ export default function CustomFormsClient() {
     const [selectedForm, setSelectedForm] = useState<FormTemplate | null>(null);
     const [deleteForm, setDeleteForm] = useState<FormTemplate | null>(null);
     const [search, setSearch] = useState('');
+    const [loaded, setLoaded] = useState(false);
+
+    // Load templates from API on mount
+    useEffect(() => {
+        fetch('/api/form-templates')
+            .then(r => r.json())
+            .then((data: any[]) => {
+                if (data && data.length > 0) {
+                    const mapped: FormTemplate[] = data.map(t => ({
+                        id: t.id,
+                        name: t.name,
+                        description: t.description || '',
+                        fields: (t.fields || []) as FormField[],
+                        lastModified: t.updatedAt ? new Date(t.updatedAt).toISOString().split('T')[0] : '',
+                        status: 'Active',
+                        uses: 0,
+                    }));
+                    setTemplates(mapped);
+                }
+                setLoaded(true);
+            })
+            .catch(() => setLoaded(true));
+    }, []);
 
     const filtered = search
         ? templates.filter(f => f.name.toLowerCase().includes(search.toLowerCase()) || f.description.toLowerCase().includes(search.toLowerCase()))
         : templates;
 
-    function handleSave(data: { name: string; description: string; status: string; fields: FormField[] }) {
+    async function handleSave(data: { name: string; description: string; status: string; fields: FormField[] }) {
         if (builderMode === 'create') {
-            const newForm: FormTemplate = {
-                id: String(Date.now()),
-                name: data.name,
-                description: data.description,
-                fields: data.fields,
-                status: data.status,
-                lastModified: new Date().toISOString().split('T')[0],
-                uses: 0,
-            };
-            setTemplates(prev => [...prev, newForm]);
-            toast.success(`Form "${data.name}" created with ${data.fields.length} fields`);
+            try {
+                const res = await fetch('/api/form-templates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: data.name, description: data.description, fields: data.fields }),
+                });
+                const created = await res.json();
+                const newForm: FormTemplate = {
+                    id: created.id || String(Date.now()),
+                    name: data.name,
+                    description: data.description,
+                    fields: data.fields,
+                    status: 'Active',
+                    lastModified: new Date().toISOString().split('T')[0],
+                    uses: 0,
+                };
+                setTemplates(prev => [...prev, newForm]);
+                toast.success(`Form "${data.name}" created with ${data.fields.length} fields`);
+            } catch {
+                toast.error('Failed to save form template');
+            }
         } else if (builderMode === 'edit' && selectedForm) {
-            setTemplates(prev => prev.map(f =>
-                f.id === selectedForm.id
-                    ? { ...f, name: data.name, description: data.description, status: data.status, fields: data.fields, lastModified: new Date().toISOString().split('T')[0] }
-                    : f
-            ));
-            toast.success(`Form "${data.name}" updated`);
+            try {
+                await fetch(`/api/form-templates/${selectedForm.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: data.name, description: data.description, fields: data.fields }),
+                });
+                setTemplates(prev => prev.map(f =>
+                    f.id === selectedForm.id
+                        ? { ...f, name: data.name, description: data.description, status: data.status, fields: data.fields, lastModified: new Date().toISOString().split('T')[0] }
+                        : f
+                ));
+                toast.success(`Form "${data.name}" updated`);
+            } catch {
+                toast.error('Failed to update form template');
+            }
         }
         setBuilderMode(null);
         setSelectedForm(null);
     }
 
-    function handleDuplicate(form: FormTemplate) {
-        const duplicate: FormTemplate = {
-            ...form,
-            id: String(Date.now()),
-            name: `${form.name} (Copy)`,
-            fields: form.fields.map(f => ({ ...f, id: `${f.id}_copy_${Date.now()}` })),
-            uses: 0,
-            lastModified: new Date().toISOString().split('T')[0],
-        };
-        setTemplates(prev => [...prev, duplicate]);
-        toast.success(`Form duplicated as "${duplicate.name}"`);
+    async function handleDuplicate(form: FormTemplate) {
+        try {
+            const res = await fetch('/api/form-templates', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: `${form.name} (Copy)`, description: form.description, fields: form.fields }),
+            });
+            const created = await res.json();
+            const duplicate: FormTemplate = {
+                id: created.id || String(Date.now()),
+                name: `${form.name} (Copy)`,
+                description: form.description,
+                fields: form.fields,
+                status: 'Active',
+                lastModified: new Date().toISOString().split('T')[0],
+                uses: 0,
+            };
+            setTemplates(prev => [...prev, duplicate]);
+            toast.success(`Form duplicated as "${duplicate.name}"`);
+        } catch {
+            toast.error('Failed to duplicate form');
+        }
     }
 
-    function handleDelete() {
+    async function handleDelete() {
         if (!deleteForm) return;
-        setTemplates(prev => prev.filter(f => f.id !== deleteForm.id));
-        toast.success(`Form "${deleteForm.name}" deleted`);
+        try {
+            await fetch(`/api/form-templates/${deleteForm.id}`, { method: 'DELETE' });
+            setTemplates(prev => prev.filter(f => f.id !== deleteForm.id));
+            toast.success(`Form "${deleteForm.name}" deleted`);
+        } catch {
+            toast.error('Failed to delete form');
+        }
         setDeleteForm(null);
     }
 
