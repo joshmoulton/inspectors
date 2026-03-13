@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { createUser } from '@/lib/mgmt-actions';
 import SubmitButton from '@/components/SubmitButton';
+import ActionForm from '@/components/ActionForm';
+import FormField from '@/components/FormField';
 import { UserPlus } from 'lucide-react';
 
 export default function NewUserPage() {
@@ -17,36 +19,32 @@ export default function NewUserPage() {
                 </div>
             </header>
 
-            <form id="new-user-form" action={createUser} className="form-page" style={{ maxWidth: 640 }}>
-                <section className="form-card">
+            <ActionForm id="new-user-form" action={createUser} className="form-page" >
+                <section className="form-card" style={{ maxWidth: 640 }}>
                     <h2 className="form-card-title">
                         <UserPlus size={18} className="form-card-icon" />
                         User Details
                     </h2>
 
                     <div className="form-row">
-                        <div className="form-field">
-                            <label className="form-label">First Name <span className="required">*</span></label>
+                        <FormField label="First Name" name="firstName" required>
                             <input type="text" name="firstName" className="form-control" placeholder="John" required />
-                        </div>
-                        <div className="form-field">
-                            <label className="form-label">Last Name <span className="required">*</span></label>
+                        </FormField>
+                        <FormField label="Last Name" name="lastName" required>
                             <input type="text" name="lastName" className="form-control" placeholder="Doe" required />
-                        </div>
+                        </FormField>
                     </div>
 
                     <div className="form-row cols-1">
-                        <div className="form-field">
-                            <label className="form-label">Email Address <span className="required">*</span></label>
+                        <FormField label="Email Address" name="email" required>
                             <input type="email" name="email" className="form-control" placeholder="john.doe@example.com" required />
-                        </div>
+                        </FormField>
                     </div>
 
                     <div className="form-row">
-                        <div className="form-field">
-                            <label className="form-label">Username <span className="required">*</span></label>
+                        <FormField label="Username" name="username" required>
                             <input type="text" name="username" className="form-control" placeholder="jdoe" required />
-                        </div>
+                        </FormField>
                         <div className="form-field">
                             <label className="form-label">Role <span className="required">*</span></label>
                             <select name="role" className="form-control" required>
@@ -70,7 +68,7 @@ export default function NewUserPage() {
                         <SubmitButton>Create User</SubmitButton>
                     </div>
                 </section>
-            </form>
+            </ActionForm>
         </div>
     );
 }

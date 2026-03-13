@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import { updateUser } from '@/lib/mgmt-actions';
 import SubmitButton from '@/components/SubmitButton';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import ActionForm from '@/components/ActionForm';
+import FormField from '@/components/FormField';
 import { UserCog } from 'lucide-react';
 
 export default async function EditUserPage({ params }: { params: { id: string } }) {
@@ -33,22 +35,20 @@ export default async function EditUserPage({ params }: { params: { id: string } 
                 { label: 'Edit' },
             ]} />
 
-            <form id="edit-user-form" action={updateUserWithId} className="form-page" style={{ maxWidth: 640 }}>
-                <section className="form-card">
+            <ActionForm id="edit-user-form" action={updateUserWithId} className="form-page">
+                <section className="form-card" style={{ maxWidth: 640 }}>
                     <h2 className="form-card-title">
                         <UserCog size={18} className="form-card-icon" />
                         User Details
                     </h2>
 
                     <div className="form-row">
-                        <div className="form-field">
-                            <label className="form-label">First Name <span className="required">*</span></label>
+                        <FormField label="First Name" name="firstName" required>
                             <input type="text" name="firstName" className="form-control" defaultValue={user.firstName} required />
-                        </div>
-                        <div className="form-field">
-                            <label className="form-label">Last Name <span className="required">*</span></label>
+                        </FormField>
+                        <FormField label="Last Name" name="lastName" required>
                             <input type="text" name="lastName" className="form-control" defaultValue={user.lastName} required />
-                        </div>
+                        </FormField>
                     </div>
 
                     <div className="form-row cols-1">
@@ -93,7 +93,7 @@ export default async function EditUserPage({ params }: { params: { id: string } 
                         <SubmitButton>Save Changes</SubmitButton>
                     </div>
                 </section>
-            </form>
+            </ActionForm>
         </div>
     );
 }

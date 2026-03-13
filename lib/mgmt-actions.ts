@@ -4,43 +4,47 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-export async function createUser(formData: FormData) {
+export async function createUser(_prev: { errors?: Record<string, string> }, formData: FormData) {
     const username = formData.get('username') as string;
     const email = formData.get('email') as string;
     const firstName = formData.get('firstName') as string;
     const lastName = formData.get('lastName') as string;
     const role = formData.get('role') as string;
     const phone = formData.get('phone') as string;
-    // Hashed password would go here in real app
     const password = 'changeme';
+
+    const errors: Record<string, string> = {};
+    if (!firstName?.trim()) errors.firstName = 'First name is required';
+    if (!lastName?.trim()) errors.lastName = 'Last name is required';
+    if (!username?.trim()) errors.username = 'Username is required';
+    if (!email?.trim()) errors.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errors.email = 'Enter a valid email address';
+    if (Object.keys(errors).length > 0) return { errors };
 
     try {
         await prisma.user.create({
-            data: {
-                username,
-                email,
-                firstName,
-                lastName,
-                role,
-                phone,
-                password,
-            },
+            data: { username, email, firstName, lastName, role, phone, password },
         });
         revalidatePath('/users');
     } catch (error) {
         console.error('Failed to create user:', error);
-        throw new Error('Failed to create user');
+        return { errors: { _form: 'Failed to create user. Username may already exist.' } };
     }
-    redirect('/users');
+    redirect('/users?saved=1');
 }
 
-export async function updateUser(id: string, formData: FormData) {
+export async function updateUser(id: string, _prev: { errors?: Record<string, string> }, formData: FormData) {
     const email = formData.get('email') as string;
     const firstName = formData.get('firstName') as string;
     const lastName = formData.get('lastName') as string;
     const role = formData.get('role') as string;
     const phone = formData.get('phone') as string;
     const active = formData.get('active') === 'true';
+
+    const errors: Record<string, string> = {};
+    if (!firstName?.trim()) errors.firstName = 'First name is required';
+    if (!lastName?.trim()) errors.lastName = 'Last name is required';
+    if (Object.keys(errors).length > 0) return { errors };
 
     try {
         await prisma.user.update({
@@ -51,9 +55,9 @@ export async function updateUser(id: string, formData: FormData) {
         revalidatePath(`/users/${id}`);
     } catch (error) {
         console.error('Failed to update user:', error);
-        throw new Error('Failed to update user');
+        return { errors: { _form: 'Failed to update user.' } };
     }
-    redirect(`/users/${id}`);
+    redirect(`/users/${id}?saved=1`);
 }
 
 export async function createClient(formData: FormData) {

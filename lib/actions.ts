@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { findInspectorForZip } from '@/lib/autoAssign';
 
-export async function createOrder(formData: FormData) {
+export async function createOrder(_prev: { errors?: Record<string, string> }, formData: FormData) {
     const orderNumber = formData.get('orderNumber') as string;
     const clientId = formData.get('clientId') as string;
     const type = formData.get('type') as string;
@@ -21,9 +21,16 @@ export async function createOrder(formData: FormData) {
     const clientPay = Math.max(0, parseFloat(formData.get('clientPay') as string) || 0);
     const instructions = formData.get('instructions') as string;
 
-    if (!orderNumber?.trim() || !clientId?.trim() || !address1?.trim() || !city?.trim() || !state?.trim() || !zip?.trim()) {
-        throw new Error('Missing required fields');
-    }
+    const errors: Record<string, string> = {};
+    if (!orderNumber?.trim()) errors.orderNumber = 'Order number is required';
+    if (!clientId?.trim()) errors.clientId = 'Client is required';
+    if (!address1?.trim()) errors.address1 = 'Address is required';
+    if (!city?.trim()) errors.city = 'City is required';
+    if (!state?.trim()) errors.state = 'State is required';
+    if (!zip?.trim()) errors.zip = 'Zip code is required';
+    else if (!/^\d{5}(-\d{4})?$/.test(zip.trim())) errors.zip = 'Enter a valid 5-digit zip code';
+    if (!dueDate?.trim()) errors.dueDate = 'Due date is required';
+    if (Object.keys(errors).length > 0) return { errors };
 
     // Auto-assign inspector by zip code if none manually selected
     let autoAssigned = false;
@@ -72,13 +79,13 @@ export async function createOrder(formData: FormData) {
         revalidatePath('/');
     } catch (error) {
         console.error('Failed to create order:', error);
-        throw new Error('Failed to create order');
+        return { errors: { _form: 'Failed to create order. The order number may already exist.' } };
     }
 
-    redirect('/orders');
+    redirect('/orders?saved=1');
 }
 
-export async function updateOrder(id: string, formData: FormData) {
+export async function updateOrder(id: string, _prev: { errors?: Record<string, string> }, formData: FormData) {
     const orderNumber = formData.get('orderNumber') as string;
     const clientId = formData.get('clientId') as string;
     const type = formData.get('type') as string;
@@ -103,9 +110,14 @@ export async function updateOrder(id: string, formData: FormData) {
     const windowStartDate = formData.get('windowStartDate') as string;
     const windowEndDate = formData.get('windowEndDate') as string;
 
-    if (!orderNumber?.trim() || !clientId?.trim() || !address1?.trim() || !city?.trim() || !state?.trim() || !zip?.trim()) {
-        throw new Error('Missing required fields');
-    }
+    const errors: Record<string, string> = {};
+    if (!orderNumber?.trim()) errors.orderNumber = 'Order number is required';
+    if (!clientId?.trim()) errors.clientId = 'Client is required';
+    if (!address1?.trim()) errors.address1 = 'Address is required';
+    if (!city?.trim()) errors.city = 'City is required';
+    if (!state?.trim()) errors.state = 'State is required';
+    if (!zip?.trim()) errors.zip = 'Zip code is required';
+    if (Object.keys(errors).length > 0) return { errors };
 
     try {
         await prisma.workOrder.update({
@@ -149,10 +161,10 @@ export async function updateOrder(id: string, formData: FormData) {
         revalidatePath('/orders');
     } catch (error) {
         console.error('Failed to update order:', error);
-        throw new Error('Failed to update order');
+        return { errors: { _form: 'Failed to update order.' } };
     }
 
-    redirect(`/orders/${id}`);
+    redirect(`/orders/${id}?saved=1`);
 }
 
 export async function updateOrderStatus(orderId: string, newStatus: string) {

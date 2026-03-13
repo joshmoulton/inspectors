@@ -6,6 +6,8 @@ import { INSPECTION_TYPES, ORDER_STATUSES } from '@/lib/types';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import SubmitButton from '@/components/SubmitButton';
 import ZipInspectorHint from '@/components/ZipInspectorHint';
+import ActionForm from '@/components/ActionForm';
+import FormField from '@/components/FormField';
 import {
     FileText, MapPin, UserCheck, ClipboardList, DollarSign,
     Building2
@@ -48,7 +50,7 @@ export default async function EditOrderPage({ params }: { params: { id: string }
                 { label: 'Edit' },
             ]} />
 
-            <form id="edit-order-form" action={updateOrderWithId} className="form-page">
+            <ActionForm id="edit-order-form" action={updateOrderWithId} className="form-page">
                 {/* Basic Info */}
                 <section className="form-card">
                     <h2 className="form-card-title">
@@ -56,17 +58,15 @@ export default async function EditOrderPage({ params }: { params: { id: string }
                         Basic Information
                     </h2>
                     <div className="form-row">
-                        <div className="form-field">
-                            <label className="form-label">Order Number <span className="required">*</span></label>
+                        <FormField label="Order Number" name="orderNumber" required>
                             <input type="text" name="orderNumber" defaultValue={order.orderNumber} className="form-control" required />
-                        </div>
-                        <div className="form-field">
-                            <label className="form-label">Client <span className="required">*</span></label>
+                        </FormField>
+                        <FormField label="Client" name="clientId" required>
                             <select name="clientId" defaultValue={order.clientId || ''} className="form-control" required>
                                 <option value="">Select a client...</option>
                                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
-                        </div>
+                        </FormField>
                     </div>
                     <div className="form-row cols-3">
                         <div className="form-field">
@@ -101,10 +101,9 @@ export default async function EditOrderPage({ params }: { params: { id: string }
                         Property Address
                     </h2>
                     <div className="form-row">
-                        <div className="form-field span-2">
-                            <label className="form-label">Address Line 1 <span className="required">*</span></label>
+                        <FormField label="Address Line 1" name="address1" required className="form-field span-2">
                             <input type="text" name="address1" defaultValue={order.address1 || ''} className="form-control" required />
-                        </div>
+                        </FormField>
                     </div>
                     <div className="form-row">
                         <div className="form-field span-2">
@@ -113,18 +112,15 @@ export default async function EditOrderPage({ params }: { params: { id: string }
                         </div>
                     </div>
                     <div className="form-row cols-3">
-                        <div className="form-field">
-                            <label className="form-label">City <span className="required">*</span></label>
+                        <FormField label="City" name="city" required>
                             <input type="text" name="city" defaultValue={order.city || ''} className="form-control" required />
-                        </div>
-                        <div className="form-field">
-                            <label className="form-label">State <span className="required">*</span></label>
+                        </FormField>
+                        <FormField label="State" name="state" required>
                             <input type="text" name="state" defaultValue={order.state || ''} className="form-control" maxLength={2} required />
-                        </div>
-                        <div className="form-field">
-                            <label className="form-label">Zip <span className="required">*</span></label>
-                            <input type="text" name="zip" defaultValue={order.zip || ''} className="form-control" required pattern="[0-9]{5}(-[0-9]{4})?" />
-                        </div>
+                        </FormField>
+                        <FormField label="Zip" name="zip" required>
+                            <input type="text" name="zip" defaultValue={order.zip || ''} className="form-control" required />
+                        </FormField>
                     </div>
                     <div className="form-row">
                         <div className="form-field">
@@ -230,7 +226,7 @@ export default async function EditOrderPage({ params }: { params: { id: string }
                     <Link href={`/orders/${id}`} className="btn btn-secondary">Cancel</Link>
                     <SubmitButton>Save Changes</SubmitButton>
                 </div>
-            </form>
+            </ActionForm>
         </div>
     );
 }

@@ -5,6 +5,8 @@ import { INSPECTION_TYPES } from '@/lib/types';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import SubmitButton from '@/components/SubmitButton';
 import ZipInspectorHint from '@/components/ZipInspectorHint';
+import ActionForm from '@/components/ActionForm';
+import FormField from '@/components/FormField';
 import { FileText, MapPin, UserCheck, ClipboardList } from 'lucide-react';
 
 export default async function NewOrderPage() {
@@ -34,7 +36,7 @@ export default async function NewOrderPage() {
 
             <Breadcrumbs items={[{ label: 'Orders', href: '/orders' }, { label: 'New Order' }]} />
 
-            <form id="new-order-form" action={createOrder} className="form-page">
+            <ActionForm id="new-order-form" action={createOrder} className="form-page">
                 {/* Section: Basic Info */}
                 <section className="form-card">
                     <h2 className="form-card-title">
@@ -42,29 +44,25 @@ export default async function NewOrderPage() {
                         Basic Information
                     </h2>
                     <div className="form-row">
-                        <div className="form-field">
-                            <label className="form-label">Order Number <span className="required">*</span></label>
+                        <FormField label="Order Number" name="orderNumber" required>
                             <input type="text" name="orderNumber" className="form-control" placeholder="e.g. 109642801" required />
-                        </div>
-                        <div className="form-field">
-                            <label className="form-label">Client <span className="required">*</span></label>
+                        </FormField>
+                        <FormField label="Client" name="clientId" required>
                             <select name="clientId" className="form-control" required>
                                 <option value="">Select a client...</option>
                                 {clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
-                        </div>
+                        </FormField>
                     </div>
                     <div className="form-row">
-                        <div className="form-field">
-                            <label className="form-label">Inspection Type</label>
+                        <FormField label="Inspection Type" name="type">
                             <select name="type" className="form-control">
                                 {INSPECTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                             </select>
-                        </div>
-                        <div className="form-field">
-                            <label className="form-label">Work Code</label>
+                        </FormField>
+                        <FormField label="Work Code" name="workCode">
                             <input type="text" name="workCode" className="form-control" placeholder="e.g. J100/INSP" />
-                        </div>
+                        </FormField>
                     </div>
                 </section>
 
@@ -75,10 +73,9 @@ export default async function NewOrderPage() {
                         Property Address
                     </h2>
                     <div className="form-row">
-                        <div className="form-field span-2">
-                            <label className="form-label">Address Line 1 <span className="required">*</span></label>
+                        <FormField label="Address Line 1" name="address1" required className="form-field span-2">
                             <input type="text" name="address1" className="form-control" placeholder="Street address" required />
-                        </div>
+                        </FormField>
                     </div>
                     <div className="form-row">
                         <div className="form-field span-2">
@@ -87,18 +84,15 @@ export default async function NewOrderPage() {
                         </div>
                     </div>
                     <div className="form-row cols-3">
-                        <div className="form-field">
-                            <label className="form-label">City <span className="required">*</span></label>
+                        <FormField label="City" name="city" required>
                             <input type="text" name="city" className="form-control" placeholder="City" required />
-                        </div>
-                        <div className="form-field">
-                            <label className="form-label">State <span className="required">*</span></label>
+                        </FormField>
+                        <FormField label="State" name="state" required>
                             <input type="text" name="state" className="form-control" placeholder="ST" maxLength={2} required />
-                        </div>
-                        <div className="form-field">
-                            <label className="form-label">Zip <span className="required">*</span></label>
-                            <input type="text" name="zip" className="form-control" placeholder="12345" required pattern="[0-9]{5}(-[0-9]{4})?" title="Enter a valid ZIP code (e.g. 12345 or 12345-6789)" />
-                        </div>
+                        </FormField>
+                        <FormField label="Zip" name="zip" required>
+                            <input type="text" name="zip" className="form-control" placeholder="12345" required />
+                        </FormField>
                     </div>
                 </section>
 
@@ -117,10 +111,9 @@ export default async function NewOrderPage() {
                             </select>
                             <ZipInspectorHint />
                         </div>
-                        <div className="form-field">
-                            <label className="form-label">Due Date <span className="required">*</span></label>
+                        <FormField label="Due Date" name="dueDate" required>
                             <input type="date" name="dueDate" className="form-control" required defaultValue={new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]} />
-                        </div>
+                        </FormField>
                     </div>
                     <div className="form-row">
                         <div className="form-field">
@@ -152,7 +145,7 @@ export default async function NewOrderPage() {
                     <Link href="/orders" className="btn btn-secondary">Cancel</Link>
                     <SubmitButton>Create Order</SubmitButton>
                 </div>
-            </form>
+            </ActionForm>
         </div>
     );
 }
